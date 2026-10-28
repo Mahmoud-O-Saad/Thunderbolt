@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: 10 13 11;
+  --color-primary: 242 193 78;
+  --color-secondary: 78 122 99;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #ede8de;
+  background-color: #0a0d0b;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: 'Oswald', 'Chakra Petch', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.tb-card {
+  background: linear-gradient(160deg, rgba(28, 34, 30, 0.92), rgba(16, 20, 18, 0.96));
+  border: 1px solid rgba(242, 193, 78, 0.18);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.tb-card:hover {
+  border-color: rgba(242, 193, 78, 0.35);
+}
+
+.tb-grid {
+  background-image: 
+    linear-gradient(rgba(242, 193, 78, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(242, 193, 78, 0.04) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.tb-noise {
+  background-image: 
+    radial-gradient(circle at 15% 0%, rgba(242, 193, 78, 0.12), transparent 55%),
+    radial-gradient(circle at 85% 10%, rgba(78, 122, 99, 0.20), transparent 60%);
+}
+
+@keyframes tb-rise {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.tb-rise {
+  animation: tb-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tb-flash {
+  0% { opacity: 0; transform: scale(0.92); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.tb-flash {
+  animation: tb-flash 0.4s ease-out both;
+}
+
+.tb-cover-bg {
+  background-image: url('/assets/aistudio/1.Cover_b397aaf7.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Remix Thunderbolt Unit Ops",
+  "description": "منظومة قيادة وإشعارات وحدة الصاعقة تحت قيادة اللواء أ.ح Dragon لبث وإيجاز المهام التكتيكية وإخطار المقاتلين فورياً.",
+  "requestFramePermissions": [
+    "notifications"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
