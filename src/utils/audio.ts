@@ -197,6 +197,71 @@ export function stopBriefing(): void {
   }
 }
 
+let activeAudioElement: HTMLAudioElement | null = null;
+
+export function playAudioUrl(
+  url: string,
+  onEnd?: () => void,
+  onTimeUpdate?: (currentTime: number, duration: number) => void
+): () => void {
+  stopAllAudio();
+  try {
+    const audio = new Audio(url);
+    activeAudioElement = audio;
+
+    audio.addEventListener('ended', () => {
+      if (activeAudioElement === audio) {
+        activeAudioElement = null;
+      }
+      if (onEnd) onEnd();
+    });
+
+    audio.addEventListener('error', () => {
+      if (activeAudioElement === audio) {
+        activeAudioElement = null;
+      }
+      if (onEnd) onEnd();
+    });
+
+    if (onTimeUpdate) {
+      audio.addEventListener('timeupdate', () => {
+        onTimeUpdate(audio.currentTime, audio.duration || 0);
+      });
+    }
+
+    audio.play().catch(() => {
+      if (onEnd) onEnd();
+    });
+
+    return () => {
+      audio.pause();
+      if (activeAudioElement === audio) {
+        activeAudioElement = null;
+      }
+    };
+  } catch {
+    if (onEnd) onEnd();
+    return () => {};
+  }
+}
+
+export function stopAudioFile(): void {
+  if (activeAudioElement) {
+    try {
+      activeAudioElement.pause();
+      activeAudioElement.currentTime = 0;
+    } catch {
+      // ignore
+    }
+    activeAudioElement = null;
+  }
+}
+
+export function stopAllAudio(): void {
+  stopAudioFile();
+  stopBriefing();
+}
+
 /**
  * Browser Notification Helper
  */

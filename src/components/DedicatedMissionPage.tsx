@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mission, SquadMember } from '../types';
 import { 
   Calendar, 
@@ -15,9 +15,11 @@ import {
   Server, 
   MessageSquare, 
   Zap, 
-  AlertTriangle 
+  AlertTriangle,
+  FileAudio,
+  Image as ImageIcon
 } from 'lucide-react';
-import { tacticalAudio, speakBriefing, stopBriefing } from '../utils/audio';
+import { tacticalAudio, speakBriefing, stopAllAudio, playAudioUrl } from '../utils/audio';
 
 interface DedicatedMissionPageProps {
   mission: Mission;
@@ -44,36 +46,57 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
 }) => {
   const isAr = lang === 'ar';
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const stopAudioRef = useRef<(() => void) | null>(null);
 
   const assignedMembers = allMembers.filter(m => mission.assignedSquad.includes(m.id));
   const confirmedCount = assignedMembers.filter(m => m.acknowledgedMissions.includes(mission.id)).length;
 
   const handleAudioToggle = () => {
     if (isPlayingAudio) {
-      stopBriefing();
+      if (stopAudioRef.current) {
+        stopAudioRef.current();
+        stopAudioRef.current = null;
+      }
+      stopAllAudio();
       setIsPlayingAudio(false);
     } else {
       tacticalAudio.playRadioClick();
       setIsPlayingAudio(true);
-      const text = `${mission.codeName}. Under command of ${commanderName}. Scheduled for ${mission.dayName}, ${mission.date} at ${mission.time}. Location: ${mission.targetSector}. ${mission.briefingOverview} Rules of engagement: ${mission.rulesOfEngagement}.`;
-      speakBriefing(text, () => setIsPlayingAudio(false));
+      if (mission.audioUrl) {
+        const stopFn = playAudioUrl(mission.audioUrl, () => {
+          setIsPlayingAudio(false);
+          stopAudioRef.current = null;
+        });
+        stopAudioRef.current = stopFn;
+      } else {
+        const text = `${mission.codeName}. Under command of ${commanderName}. Scheduled for ${mission.dayName}, ${mission.date} at ${mission.time}. Location: ${mission.targetSector}. ${mission.briefingOverview} Rules of engagement: ${mission.rulesOfEngagement}.`;
+        speakBriefing(text, () => setIsPlayingAudio(false));
+      }
     }
   };
+
+  const handleBack = () => {
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+      stopAudioRef.current = null;
+    }
+    stopAllAudio();
+    tacticalAudio.playRadioClick();
+    onBack();
+  };
+
+  const displayImage = mission.imageUrl || '/src/assets/images/tactical_operations_map_1792663265618.jpg';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Breadcrumb & Back Bar */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <button
-          onClick={() => {
-            tacticalAudio.playRadioClick();
-            stopBriefing();
-            onBack();
-          }}
+          onClick={handleBack}
           className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-mono text-slate-300 hover:text-white transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 text-amber-400" />
-          <span>{isAr ? 'العودة لمركز العمليات' : 'Back to Command Center'}</span>
+          <span>Back to Command Center</span>
         </button>
 
         <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
@@ -145,7 +168,13 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
               }`}
             >
               {isPlayingAudio ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-              <span>{isPlayingAudio ? (isAr ? 'إيقاف الصوت' : 'Stop Audio') : (isAr ? 'استماع للإيجاز' : 'Play Audio Briefing')}</span>
+              <span>
+                {isPlayingAudio 
+                  ? 'Stop Audio' 
+                  : (mission.audioUrl 
+                      ? `Play Audio Order (${mission.audioFileName || 'Voice Attached'})` 
+                      : 'Play Audio Briefing')}
+              </span>
             </button>
 
             {/* Acknowledge Button */}
@@ -161,7 +190,7 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
               }`}
             >
               <CheckCircle className="w-4 h-4" />
-              <span>{isAcknowledged ? (isAr ? 'تم تأكيد جاهزيتك' : 'Ready Confirmed') : (isAr ? 'تأكيد الحضور والجاهزية' : 'Confirm Attendance')}</span>
+              <span>{isAcknowledged ? 'Ready Confirmed' : 'Confirm Attendance'}</span>
             </button>
 
             {/* Discord Registration Link */}
@@ -175,7 +204,7 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
               </svg>
-              <span>{isAr ? 'التسجيل عبر ديسكورد' : 'Register on Discord'}</span>
+              <span>Register on Discord</span>
             </a>
 
             {/* Broadcast Button */}
@@ -184,7 +213,7 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
               className="px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
             >
               <Radio className="w-4 h-4" />
-              <span>{isAr ? 'بث إشعار للكل' : 'Broadcast to Squad'}</span>
+              <span>Broadcast to Squad</span>
             </button>
           </div>
         </div>
@@ -199,10 +228,10 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500" />
-                <span>{isAr ? 'شرح المهمة والتفاصيل العملياتية' : 'Mission Explanation & Tactical Concept'}</span>
+                <span>Mission Explanation & Tactical Concept</span>
               </h2>
               <span className="text-xs font-mono text-amber-400">
-                {isAr ? 'تاريخ المهمة: الخميس ٢٢/١٠/٢٠٢٦' : 'Mission Date: Thursday 22/10/2026'}
+                Mission Date: Thursday 22/10/2026
               </span>
             </div>
 
@@ -216,14 +245,14 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono space-y-1">
                 <span className="text-amber-400 font-bold block">
-                  {isAr ? 'قواعد الاشتباك (ROE):' : 'RULES OF ENGAGEMENT:'}
+                  RULES OF ENGAGEMENT:
                 </span>
                 <span className="text-slate-300">{mission.rulesOfEngagement}</span>
               </div>
 
               <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono space-y-1">
                 <span className="text-amber-400 font-bold block">
-                  {isAr ? 'الطقس وظروف الميدان:' : 'METEOROLOGY & TERRAIN:'}
+                  METEOROLOGY & TERRAIN:
                 </span>
                 <span className="text-slate-300">{mission.weatherConditions}</span>
               </div>
@@ -233,23 +262,28 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
           {/* Tactical Sector Map */}
           <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
             <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-              <span className="text-amber-400 font-bold">
-                TACTICAL OVERWATCH SATELLITE MAP // SECTOR {mission.targetSector}
+              <span className="text-amber-400 font-bold flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-amber-500" />
+                <span>
+                  {mission.imageFileName 
+                    ? `TACTICAL RECON PHOTO // ${mission.imageFileName}` 
+                    : `TACTICAL OVERWATCH SATELLITE MAP // SECTOR ${mission.targetSector}`}
+                </span>
               </span>
               <span className="tabular-nums">GRID REF: {mission.coordinates}</span>
             </div>
 
             <div className="relative aspect-[16/9] w-full bg-slate-950">
               <img
-                src="/src/assets/images/tactical_operations_map_1792663265618.jpg"
-                alt="Tactical Overwatch Map"
+                src={displayImage}
+                alt="Tactical Overwatch Map or Recon Photo"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between bg-slate-950/80 backdrop-blur p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-300">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-amber-500" />
-                  <span>OBJECTIVE LZ: Ridge Bravo Outpost Echo-4</span>
+                  <span>TARGET LZ: {mission.targetSector}</span>
                 </div>
                 <span className="text-emerald-400 font-bold">FEED: LIVE SAT-UPLINK</span>
               </div>
@@ -260,7 +294,7 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
           <div className="p-5 bg-gradient-to-r from-slate-900 to-[#111827] border border-slate-800 rounded-2xl space-y-3">
             <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
               <Server className="w-4 h-4 text-amber-400" />
-              <span>{isAr ? 'بيانات سيرفر اللعبة والاتصال الصوتي (ARMA 3)' : 'ARMA 3 Server & Tactical Radio Channels'}</span>
+              <span>ARMA 3 Server & Tactical Radio Channels</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
@@ -287,7 +321,7 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
                 <ListChecks className="w-4 h-4 text-amber-400" />
-                <span>{isAr ? 'قائمة الأهداف التكتيكية' : 'Tactical Objectives'}</span>
+                <span>Tactical Objectives</span>
               </h3>
               <span className="text-xs font-mono text-slate-400">
                 {mission.objectives.filter(o => o.completed).length} / {mission.objectives.length}
@@ -329,10 +363,10 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
                 <Users className="w-4 h-4 text-amber-400" />
-                <span>{isAr ? 'حضور أفراد الوحدة' : 'Squad Operators'}</span>
+                <span>Squad Operators</span>
               </h3>
               <span className="text-xs font-mono text-amber-400 font-bold">
-                {confirmedCount} / {assignedMembers.length} {isAr ? 'جاهزون' : 'Ready'}
+                {confirmedCount} / {assignedMembers.length} Ready
               </span>
             </div>
 
@@ -361,12 +395,12 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
                       {hasAck ? (
                         <span className="text-emerald-400 font-semibold flex items-center gap-1">
                           <CheckCircle className="w-3.5 h-3.5" />
-                          <span>{isAr ? 'حاضر' : 'Confirmed'}</span>
+                          <span>Confirmed</span>
                         </span>
                       ) : (
                         <span className="text-amber-400/80 flex items-center gap-1">
                           <Radio className="w-3.5 h-3.5 animate-pulse" />
-                          <span>{isAr ? 'بانتظار' : 'Pending'}</span>
+                          <span>Pending</span>
                         </span>
                       )}
                     </div>
@@ -379,7 +413,7 @@ export const DedicatedMissionPage: React.FC<DedicatedMissionPageProps> = ({
           {/* Equipment */}
           <div className="p-5 bg-[#111827] border border-slate-800 rounded-2xl space-y-3 text-xs font-mono">
             <span className="text-slate-400 block font-bold uppercase tracking-wider">
-              {isAr ? 'العتاد والتجهيزات المعتمدة للمهمة:' : 'AUTHORIZED LOADOUT:'}
+              AUTHORIZED LOADOUT:
             </span>
             <div className="flex flex-wrap gap-1.5 text-slate-300">
               {mission.equipmentList.map((eq, i) => (

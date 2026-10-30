@@ -1,6 +1,6 @@
 {
   "name": "Remix Thunderbolt Unit Ops",
-  "description": "منظومة قيادة وإشعارات وحدة الصاعقة تحت قيادة اللواء أ.ح Dragon لبث وإيجاز المهام التكتيكية وإخطار المقاتلين فورياً.",
+  "description": "Thunderbolt Unit tactical operations, real-time mission briefing, and Discord registration system under Maj. Gen. Dragon.",
   "requestFramePermissions": [
     "notifications"
   ],

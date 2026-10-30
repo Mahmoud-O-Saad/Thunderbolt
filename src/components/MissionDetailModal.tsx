@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mission, SquadMember } from '../types';
-import { X, Calendar, Clock, MapPin, Radio, Shield, CheckCircle, Volume2, VolumeX, ListChecks, Crosshair, Users, AlertTriangle, Play, Square } from 'lucide-react';
-import { tacticalAudio, speakBriefing, stopBriefing } from '../utils/audio';
+import { X, Calendar, Clock, MapPin, Radio, Shield, CheckCircle, Volume2, ListChecks, Crosshair, Users, Play, Square, FileAudio, Image as ImageIcon } from 'lucide-react';
+import { tacticalAudio, speakBriefing, stopAllAudio, playAudioUrl } from '../utils/audio';
 
 interface MissionDetailModalProps {
   mission: Mission;
@@ -22,32 +22,49 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
   onToggleAcknowledge,
   isAcknowledged,
   onToggleObjective,
-  lang,
 }) => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const isAr = lang === 'ar';
+  const stopAudioRef = useRef<(() => void) | null>(null);
 
   const assignedMembers = allMembers.filter(m => mission.assignedSquad.includes(m.id));
 
   const handleAudioToggle = () => {
     if (isPlayingAudio) {
-      stopBriefing();
+      if (stopAudioRef.current) {
+        stopAudioRef.current();
+        stopAudioRef.current = null;
+      }
+      stopAllAudio();
       setIsPlayingAudio(false);
     } else {
       tacticalAudio.playRadioClick();
       setIsPlayingAudio(true);
-      const textToRead = `${mission.codeName}. Scheduled for ${mission.dayName}, ${mission.date} at ${mission.time}. Under command of ${mission.commander}. ${mission.briefingOverview}. Rules of engagement: ${mission.rulesOfEngagement}.`;
-      speakBriefing(textToRead, () => {
-        setIsPlayingAudio(false);
-      });
+      if (mission.audioUrl) {
+        const stopFn = playAudioUrl(mission.audioUrl, () => {
+          setIsPlayingAudio(false);
+          stopAudioRef.current = null;
+        });
+        stopAudioRef.current = stopFn;
+      } else {
+        const textToRead = `${mission.codeName}. Scheduled for ${mission.dayName}, ${mission.date} at ${mission.time}. Under command of ${mission.commander}. ${mission.briefingOverview}. Rules of engagement: ${mission.rulesOfEngagement}.`;
+        speakBriefing(textToRead, () => {
+          setIsPlayingAudio(false);
+        });
+      }
     }
   };
 
   const handleClose = () => {
-    stopBriefing();
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+      stopAudioRef.current = null;
+    }
+    stopAllAudio();
     tacticalAudio.playRadioClick();
     onClose();
   };
+
+  const displayImage = mission.imageUrl || '/src/assets/images/tactical_operations_map_1792663265618.jpg';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
@@ -89,9 +106,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
             <div>
               <div className="flex items-center gap-2 text-xs font-mono text-amber-400 uppercase font-bold tracking-wider mb-1">
                 <Calendar className="w-4 h-4" />
-                <span>
-                  {isAr ? 'موعد تنفيذ المهمة المجدولة' : 'Scheduled Execution Date'}
-                </span>
+                <span>Scheduled Execution Date</span>
               </div>
               <p className="text-xl sm:text-2xl font-black text-white font-mono tabular-nums">
                 {mission.dayName}, {mission.date} · {mission.time}
@@ -113,7 +128,13 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                 }`}
               >
                 {isPlayingAudio ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                <span>{isPlayingAudio ? (isAr ? 'إيقاف الإيجاز الصوتي' : 'Stop Audio Briefing') : (isAr ? 'استماع للإيجاز الصوتي' : 'Listen to Briefing (Audio)')}</span>
+                <span>
+                  {isPlayingAudio 
+                    ? 'Stop Audio Briefing' 
+                    : (mission.audioUrl 
+                        ? `Play Audio Order (${mission.audioFileName || 'Uploaded File'})` 
+                        : 'Listen to Briefing (Audio)')}
+                </span>
               </button>
 
               <button
@@ -121,7 +142,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                 className="px-4 py-2 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>{isAr ? 'إرسال إشعار لكافة الأفراد' : 'Broadcast to All Operators'}</span>
+                <span>Broadcast to All Operators</span>
               </button>
             </div>
           </div>
@@ -130,7 +151,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-amber-400 font-mono uppercase tracking-wider flex items-center gap-2">
               <Crosshair className="w-4 h-4 text-amber-400" />
-              <span>{isAr ? 'إيجاز المهمة والشرح التكتيكي المفصل' : 'Mission Briefing & Tactical Explanation'}</span>
+              <span>Mission Briefing & Tactical Explanation</span>
             </h4>
             <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl space-y-3 text-sm text-slate-300 leading-relaxed">
               <p className="font-sans">
@@ -139,29 +160,32 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-slate-800 text-xs font-mono">
                 <div>
-                  <span className="text-slate-400 block font-semibold mb-0.5">RULES OF ENGAGEMENT (قواعد الاشتباك):</span>
+                  <span className="text-slate-400 block font-semibold mb-0.5">RULES OF ENGAGEMENT:</span>
                   <span className="text-slate-300">{mission.rulesOfEngagement}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-semibold mb-0.5">ENVIRONMENT & METEOROLOGY (الطقس والتضاريس):</span>
+                  <span className="text-slate-400 block font-semibold mb-0.5">ENVIRONMENT & METEOROLOGY:</span>
                   <span className="text-slate-300">{mission.weatherConditions}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Tactical Operations Map Visualizer */}
+          {/* Tactical Operations Map / Image Visualizer */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-              <span className="text-amber-400 font-bold uppercase">
-                {isAr ? 'خريطة القطاع وإحداثيات الإنزال التكتيكية' : 'Sector Grid Coordinates & Tactical Overwatch Map'}
+              <span className="text-amber-400 font-bold uppercase flex items-center gap-2">
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>
+                  {mission.imageFileName ? `Operation Recon Image (${mission.imageFileName})` : 'Sector Grid Coordinates & Tactical Overwatch Map'}
+                </span>
               </span>
               <span className="tabular-nums">GRID REF: {mission.coordinates}</span>
             </div>
-            <div className="relative rounded-xl overflow-hidden border border-slate-800 aspect-[16/9] max-h-64 w-full bg-slate-950">
+            <div className="relative rounded-xl overflow-hidden border border-slate-800 aspect-[16/9] max-h-72 w-full bg-slate-950">
               <img 
-                src="/src/assets/images/tactical_operations_map_1792663265618.jpg" 
-                alt="Tactical Map" 
+                src={displayImage} 
+                alt="Tactical Map or Recon Photo" 
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
@@ -180,7 +204,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
             <div className="space-y-3">
               <h4 className="text-sm font-bold text-slate-200 font-mono uppercase tracking-wider flex items-center gap-2">
                 <ListChecks className="w-4 h-4 text-amber-400" />
-                <span>{isAr ? 'الأهداف التكتيكية المحددة' : 'Tactical Objectives Checklist'}</span>
+                <span>Tactical Objectives Checklist</span>
               </h4>
               <div className="space-y-2">
                 {mission.objectives.map((obj) => (
@@ -219,7 +243,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-bold text-slate-200 font-mono uppercase tracking-wider flex items-center gap-2">
                   <Users className="w-4 h-4 text-amber-400" />
-                  <span>{isAr ? 'المقاتلون المكلفون وحالة التأكيد' : 'Assigned Squad & Read Receipts'}</span>
+                  <span>Assigned Squad & Read Receipts</span>
                 </h4>
                 <span className="text-xs font-mono text-slate-400">
                   {assignedMembers.length} Operators
@@ -251,12 +275,12 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                         {hasAck ? (
                           <span className="text-emerald-400 flex items-center gap-1 font-semibold">
                             <CheckCircle className="w-3.5 h-3.5" />
-                            <span>{isAr ? 'تم الاستلام' : 'Confirmed'}</span>
+                            <span>Confirmed</span>
                           </span>
                         ) : (
                           <span className="text-amber-400/90 flex items-center gap-1">
                             <Radio className="w-3.5 h-3.5 animate-pulse" />
-                            <span>{isAr ? 'بانتظار التأكيد' : 'Pending Ack'}</span>
+                            <span>Pending Ack</span>
                           </span>
                         )}
                       </div>
@@ -268,7 +292,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
               {/* Equipment Loadout */}
               <div className="pt-3 border-t border-slate-800">
                 <span className="text-xs font-mono text-slate-400 block mb-2 font-semibold">
-                  {isAr ? 'قائمة العتاد والتجهيزات المعتمدة:' : 'Authorized Gear & Equipment:'}
+                  Authorized Gear & Equipment:
                 </span>
                 <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-slate-300">
                   {mission.equipmentList.map((item, idx) => (
@@ -319,9 +343,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
             >
               <CheckCircle className="w-4 h-4" />
               <span>
-                {isAcknowledged
-                  ? (isAr ? 'أكدت استلام المهمة والجاهزية' : 'You Confirmed Ready')
-                  : (isAr ? 'تأكيد استلامك للمهمة والجاهزية' : 'Confirm My Readiness')}
+                {isAcknowledged ? 'You Confirmed Ready' : 'Confirm My Readiness'}
               </span>
             </button>
 
@@ -329,7 +351,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
               onClick={handleClose}
               className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer transition-colors"
             >
-              {isAr ? 'إغلاق' : 'Close'}
+              Close
             </button>
           </div>
         </div>

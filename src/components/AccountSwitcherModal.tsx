@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserAccount, UserRole } from '../types';
+import { isCommandRank, isStaffRank } from '../data/initialData';
 import { 
   Users, 
   UserCheck, 
@@ -52,13 +53,13 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
             </div>
             <div>
               <h3 className="font-display text-base font-bold text-stone-100 flex items-center gap-2">
-                <span>إدارة وتبديل الحسابات</span>
+                <span>Manage & Switch Accounts</span>
                 <span className="text-[11px] text-[#f2c14e] font-mono tracking-wider font-normal">
                   / ACCOUNTS
                 </span>
               </h3>
               <p className="text-[11px] text-stone-400 font-mono">
-                MEMBERS & INSTRUCTORS ROSTER
+                MEMBERS & COMMANDERS ROSTER
               </p>
             </div>
           </div>
@@ -78,10 +79,10 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
         <div className="p-3 rounded-xl bg-stone-900/60 border border-stone-800 text-xs text-stone-300 space-y-1">
           <div className="flex items-center gap-1.5 text-[#f2c14e] font-mono font-bold text-[11px]">
             <Eye className="w-3.5 h-3.5" />
-            <span>حسابات الأعضاء (Members) والقادة</span>
+            <span>Operator & Commander Accounts</span>
           </div>
           <p className="text-[11px] text-stone-400 leading-relaxed font-sans">
-            الـ <strong className="text-stone-200">Member</strong> هو عضو ومقاتل الوحدة الذي يستعرض المهمة ويدخل عبر رابط ديسكورد للتسجيل.
+            A <strong className="text-stone-200">Member</strong> accesses the Discord operations hub to register and join voice briefings. The <strong className="text-stone-200">Leader</strong> commands tactical missions and commissions ranks.
           </p>
         </div>
 
@@ -96,7 +97,7 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
             className="py-2.5 px-3 rounded-xl bg-[#f2c14e] hover:bg-[#ffda73] text-black font-display font-bold text-xs uppercase tracking-wider shadow-md shadow-[#f2c14e]/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
           >
             <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>+ إضافة عضو (Member)</span>
+            <span>+ Add Member</span>
           </button>
 
           <button
@@ -108,14 +109,14 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
             className="py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 font-display font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
           >
             <Award className="w-3.5 h-3.5 text-[#f2c14e]" />
-            <span>+ إضافة قائد (Leader)</span>
+            <span>+ Add Leader</span>
           </button>
         </div>
 
         {/* Accounts List */}
         <div className="space-y-2 pt-1 max-h-64 overflow-y-auto pr-1">
           <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">
-            الحسابات المسجلة ({accounts.length}):
+            Registered Profiles ({accounts.length}):
           </span>
 
           {accounts.map((acc) => {
@@ -154,8 +155,13 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
 
                   <div className="overflow-hidden space-y-0.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/20 px-1 rounded shrink-0">
-                        {acc.rank}
+                      <span className="font-mono text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/20 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1">
+                        <span>{acc.rank}</span>
+                        {isStaffRank(acc.rank) && (
+                          <span className="text-[8px] text-emerald-400 bg-emerald-950/60 px-1 rounded">
+                            أ.ح
+                          </span>
+                        )}
                       </span>
                       <span className="font-sans font-bold text-stone-100 text-xs truncate">
                         {acc.username}
@@ -163,17 +169,17 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 text-[10px] font-mono text-stone-400 flex-wrap">
-                      <span className={isClient ? 'text-sky-400 font-bold' : 'text-[#f2c14e] font-bold'}>
-                        {isClient ? 'Member (عضو)' : 'Leader (قائد / معلم)'}
+                      <span className={isCommandRank(acc.rank) ? 'text-[#f2c14e] font-bold' : (isClient ? 'text-sky-400 font-bold' : 'text-emerald-400 font-bold')}>
+                        {isCommandRank(acc.rank) ? 'Command' : (isClient ? 'Member (Operator)' : 'Lead Operator')}
                       </span>
                       {acc.approvalStatus === 'pending' && (
                         <span className="text-amber-400 font-bold bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 rounded">
-                          (بانتظار موافقة القائد)
+                          (Pending Clearance)
                         </span>
                       )}
                       {acc.approvalStatus === 'rejected' && (
                         <span className="text-rose-400 font-bold bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.2 rounded">
-                          (مرفوض)
+                          (Rejected)
                         </span>
                       )}
                     </div>
@@ -184,7 +190,7 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
                   {isActive ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-lg border border-emerald-500/40">
                       <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>نشط الآن</span>
+                      <span>Active</span>
                     </span>
                   ) : (
                     <button
@@ -197,7 +203,7 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
                       }}
                       className="px-2.5 py-1 text-[11px] font-mono font-bold text-stone-300 hover:text-black bg-stone-900 hover:bg-[#f2c14e] border border-stone-700 rounded-lg transition cursor-pointer"
                     >
-                      تفعيل
+                      Switch
                     </button>
                   )}
 
@@ -209,7 +215,7 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
                         tacticalAudio.playRadioClick();
                         onDeleteAccount(acc.id);
                       }}
-                      title="حذف هذا الحساب"
+                      title="Delete profile"
                       className="p-1 text-stone-500 hover:text-red-400 transition cursor-pointer rounded"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -224,7 +230,7 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
         {/* Footer */}
         <div className="pt-2 border-t border-stone-800 text-center">
           <p className="text-[10px] font-mono text-stone-500">
-            الرتبة العسكرية القياسية [CODE | الرتبة] ثم الاسم (مثال: [PFC | جندي أول] Mahmoud)
+            Standard military format: [CODE | Arabic Rank] Username (e.g. [PFC | جندي أول] Mahmoud)
           </p>
         </div>
 

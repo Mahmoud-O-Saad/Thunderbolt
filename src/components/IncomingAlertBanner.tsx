@@ -29,7 +29,7 @@ export const IncomingAlertBanner: React.FC<IncomingAlertBannerProps> = ({
         {/* Content */}
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2 text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">
-            <span>🚨 {isAr ? 'إشعار تكتيكي جديد وارد لجميع المقاتلين' : 'INCOMING MISSION DISPATCH // SQUAD ALERT'}</span>
+            <span>🚨 INCOMING MISSION DISPATCH // SQUAD ALERT</span>
             <span aria-hidden="true">·</span>
             <span className="tabular-nums">{notification.timestamp}</span>
           </div>
@@ -50,7 +50,7 @@ export const IncomingAlertBanner: React.FC<IncomingAlertBannerProps> = ({
               }}
               className="px-3.5 py-1.5 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
             >
-              <span>{isAr ? 'عرض إيجاز وتفاصيل المهمة' : 'Open Tactical Briefing'}</span>
+              <span>Open Tactical Briefing</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
 
@@ -58,7 +58,7 @@ export const IncomingAlertBanner: React.FC<IncomingAlertBannerProps> = ({
               onClick={onDismiss}
               className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded transition-colors cursor-pointer"
             >
-              {isAr ? 'تجاهل' : 'Acknowledge & Dismiss'}
+              Acknowledge & Dismiss
             </button>
           </div>
         </div>

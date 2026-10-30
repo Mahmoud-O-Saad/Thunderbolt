@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Mission, SquadMember } from '../types';
-import { Calendar, Clock, MapPin, Radio, Shield, CheckCircle, ChevronRight, Volume2 } from 'lucide-react';
-import { tacticalAudio } from '../utils/audio';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Radio, 
+  CheckCircle, 
+  ChevronRight, 
+  Volume2, 
+  Play, 
+  Square, 
+  FileAudio, 
+  Image as ImageIcon 
+} from 'lucide-react';
+import { tacticalAudio, playAudioUrl, stopAllAudio, speakBriefing } from '../utils/audio';
 
 interface MissionCardProps {
   mission: Mission;
@@ -20,9 +32,8 @@ export const MissionCard: React.FC<MissionCardProps> = ({
   onBroadcastAlert,
   onToggleAcknowledge,
   isAcknowledgedByCurrent,
-  lang,
 }) => {
-  const isAr = lang === 'ar';
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   // Count assigned members who have acknowledged
   const assigned = allMembers.filter(m => mission.assignedSquad.includes(m.id));
@@ -42,87 +53,164 @@ export const MissionCard: React.FC<MissionCardProps> = ({
     STANDBY: 'text-indigo-400',
   }[mission.status];
 
+  const handleToggleAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPlayingAudio) {
+      stopAllAudio();
+      setIsPlayingAudio(false);
+    } else {
+      tacticalAudio.playRadioClick();
+      setIsPlayingAudio(true);
+      if (mission.audioUrl) {
+        playAudioUrl(mission.audioUrl, () => setIsPlayingAudio(false));
+      } else {
+        const textToRead = `${mission.codeName}. Scheduled for ${mission.dayName}, ${mission.date} at ${mission.time}. Under command of ${mission.commander}. ${mission.briefingOverview}`;
+        speakBriefing(textToRead, () => setIsPlayingAudio(false));
+      }
+    }
+  };
+
+  const coverImage = mission.imageUrl || '/src/assets/images/tactical_operations_map_1792663265618.jpg';
+
   return (
-    <article className="bg-[#111827] border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors flex flex-col justify-between">
+    <article className="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-colors flex flex-col justify-between group">
       <div>
-        {/* Unboxed Metadata Header (No pill badges, clean separators) */}
-        <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-3 border-b border-slate-800/80">
-          <div className="flex items-center gap-2">
-            <span className={`font-bold ${priorityColor}`}>
-              {mission.priority}
-            </span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span className={`font-semibold ${statusColor}`}>
-              {mission.status}
-            </span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span className="text-slate-300 font-bold tracking-wider">
+        {/* Cover Image Banner (Tactical preview) */}
+        <div className="relative h-36 w-full overflow-hidden bg-slate-950 border-b border-slate-800">
+          <img
+            src={coverImage}
+            alt={mission.codeName}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-80"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111827] via-slate-950/40 to-transparent" />
+
+          {/* Top Badges overlay */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-xs font-mono">
+            <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur px-2.5 py-1 rounded border border-slate-800 text-[11px]">
+              <span className={`font-bold ${priorityColor}`}>{mission.priority}</span>
+              <span className="text-slate-600">·</span>
+              <span className={`font-semibold ${statusColor}`}>{mission.status}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {mission.audioUrl && (
+                <div className="flex items-center gap-1 bg-amber-500/20 backdrop-blur px-2 py-0.5 rounded border border-amber-500/40 text-[10px] text-amber-300 font-mono">
+                  <FileAudio className="w-3 h-3 text-amber-400" />
+                  <span>AUDIO ATTACHED</span>
+                </div>
+              )}
+              {mission.imageUrl && (
+                <div className="flex items-center gap-1 bg-sky-500/20 backdrop-blur px-2 py-0.5 rounded border border-sky-500/40 text-[10px] text-sky-300 font-mono">
+                  <ImageIcon className="w-3 h-3 text-sky-400" />
+                  <span>CUSTOM PHOTO</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Banner Title Overlay */}
+          <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-amber-400 tracking-wider">
               {mission.codeName}
             </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-slate-400 tabular-nums">
-            <Radio className="w-3.5 h-3.5 text-amber-500" />
-            <span>{mission.broadcastCount} {isAr ? 'بث للمقاتلين' : 'Dispatches'}</span>
+            <span className="text-[11px] font-mono text-slate-400">
+              {mission.broadcastCount} Dispatches
+            </span>
           </div>
         </div>
 
-        {/* Mission Title */}
-        <h3 className="text-lg font-bold text-white mt-3 mb-1.5 leading-snug">
-          {mission.title}
-        </h3>
+        {/* Card Content Padding */}
+        <div className="p-5">
+          {/* Mission Title */}
+          <h3 className="text-lg font-bold text-white mb-2 leading-snug">
+            {mission.title}
+          </h3>
 
-        {/* Highlighted Date & Time (Thursday 22/10/2026) */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-slate-300 my-2.5">
-          <div className="flex items-center gap-1 text-amber-400 font-semibold">
-            <Calendar className="w-3.5 h-3.5" />
-            <span className="tabular-nums">{mission.dayName}, {mission.date}</span>
-          </div>
-          <span aria-hidden="true" className="text-slate-700 hidden sm:inline">|</span>
-          <div className="flex items-center gap-1 text-slate-300">
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
-            <span className="tabular-nums">{mission.time}</span>
-          </div>
-          <span aria-hidden="true" className="text-slate-700 hidden sm:inline">|</span>
-          <div className="flex items-center gap-1 text-slate-400 truncate max-w-xs">
-            <MapPin className="w-3.5 h-3.5 text-slate-500" />
-            <span className="truncate">{mission.targetSector}</span>
-          </div>
-        </div>
-
-        {/* Tactical Mission Summary / Explanation */}
-        <p className="text-xs text-slate-400 leading-relaxed line-clamp-3 mb-4">
-          {mission.summary}
-        </p>
-
-        {/* Squad Readiness Progress */}
-        <div className="bg-slate-900/90 rounded-lg p-3 border border-slate-800 text-xs mb-4">
-          <div className="flex items-center justify-between font-mono mb-1.5 text-slate-300">
-            <span className="text-slate-400 text-[11px]">
-              {isAr ? 'جاهزية المقاتلين المكلفين:' : 'Assigned Squad Readiness:'}
-            </span>
-            <span className="tabular-nums font-bold text-amber-400">
-              {acknowledgedCount} / {assigned.length} {isAr ? 'أكدوا الاستلام' : 'Confirmed'}
-            </span>
+          {/* Highlighted Date & Time (Thursday 22/10/2026) */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-slate-300 my-2.5">
+            <div className="flex items-center gap-1 text-amber-400 font-semibold">
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="tabular-nums">{mission.dayName}, {mission.date}</span>
+            </div>
+            <span aria-hidden="true" className="text-slate-700 hidden sm:inline">|</span>
+            <div className="flex items-center gap-1 text-slate-300">
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
+              <span className="tabular-nums">{mission.time}</span>
+            </div>
+            <span aria-hidden="true" className="text-slate-700 hidden sm:inline">|</span>
+            <div className="flex items-center gap-1 text-slate-400 truncate max-w-xs">
+              <MapPin className="w-3.5 h-3.5 text-slate-500" />
+              <span className="truncate">{mission.targetSector}</span>
+            </div>
           </div>
 
-          {/* Clean Progress Line */}
-          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-            <div 
-              className="bg-amber-500 h-full transition-all duration-500"
-              style={{ width: `${assigned.length > 0 ? (acknowledgedCount / assigned.length) * 100 : 0}%` }}
-            />
+          {/* Tactical Mission Summary / Explanation */}
+          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-4">
+            {mission.summary}
+          </p>
+
+          {/* Audio Briefing Quick Listen Bar */}
+          <div className="mb-4 p-2.5 bg-slate-900/90 rounded-lg border border-slate-800 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 truncate">
+              <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="text-slate-300 font-mono truncate text-[11px]">
+                {mission.audioUrl 
+                  ? (mission.audioFileName || 'Vocal Order Recording Attached')
+                  : 'Spoken Audio Order Ready'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleAudio}
+              className={`px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer ${
+                isPlayingAudio
+                  ? 'bg-rose-500 text-white animate-pulse'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30'
+              }`}
+            >
+              {isPlayingAudio ? (
+                <>
+                  <Square className="w-3 h-3 fill-current" />
+                  <span>Stop</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>Listen</span>
+                </>
+              )}
+            </button>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2">
-            <span>Commander: {mission.commander}</span>
-            <span>Coord: {mission.coordinates}</span>
+          {/* Squad Readiness Progress */}
+          <div className="bg-slate-900/90 rounded-lg p-3 border border-slate-800 text-xs mb-4">
+            <div className="flex items-center justify-between font-mono mb-1.5 text-slate-300">
+              <span className="text-slate-400 text-[11px]">
+                Assigned Squad Readiness:
+              </span>
+              <span className="tabular-nums font-bold text-amber-400">
+                {acknowledgedCount} / {assigned.length} Confirmed
+              </span>
+            </div>
+
+            {/* Clean Progress Line */}
+            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-amber-500 h-full transition-all duration-500"
+                style={{ width: `${assigned.length > 0 ? (acknowledgedCount / assigned.length) * 100 : 0}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2">
+              <span>Commander: {mission.commander}</span>
+              <span>Coord: {mission.coordinates}</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Action Row */}
-      <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+      <div className="p-5 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {/* Quick Broadcast Button */}
           <button
@@ -130,11 +218,11 @@ export const MissionCard: React.FC<MissionCardProps> = ({
               tacticalAudio.playTacticalAlert();
               onBroadcastAlert(mission);
             }}
-            title={isAr ? "إرسال إشعار فوري وتكليف لكل أفراد الوحدة" : "Broadcast Dispatch Alert to All Squad Members"}
+            title="Broadcast Dispatch Alert to All Squad Members"
             className="px-3 py-1.5 text-xs font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Radio className="w-3.5 h-3.5" />
-            <span>{isAr ? 'بث إشعار للكل' : 'Broadcast to All'}</span>
+            <span>Broadcast to All</span>
           </button>
 
           {mission.discordUrl && (
@@ -166,9 +254,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({
           >
             <CheckCircle className={`w-3.5 h-3.5 ${isAcknowledgedByCurrent ? 'text-emerald-400' : 'text-slate-500'}`} />
             <span>
-              {isAcknowledgedByCurrent 
-                ? (isAr ? 'تم الاستلام والتأكيد' : 'Acknowledged & Ready') 
-                : (isAr ? 'تأكيد استلام المهمة' : 'Acknowledge')}
+              {isAcknowledgedByCurrent ? 'Acknowledged & Ready' : 'Acknowledge'}
             </span>
           </button>
         </div>
@@ -181,7 +267,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({
           }}
           className="px-3.5 py-1.5 text-xs font-bold text-slate-100 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
         >
-          <span>{isAr ? 'شرح وإيجاز المهمة' : 'Full Briefing'}</span>
+          <span>Full Briefing</span>
           <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
         </button>
       </div>

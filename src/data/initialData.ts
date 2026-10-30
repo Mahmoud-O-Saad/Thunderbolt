@@ -1,88 +1,104 @@
 import { Mission, SquadMember, BroadcastNotification } from '../types';
 
 export const COMMANDER_NAME = "[MG | لواء أ.ح] Dragon";
-export const COMMANDER_TITLE = "Commander of Thunderbolt Unit (وحدة الصاعقة)";
+export const COMMANDER_TITLE = "Commander of Thunderbolt Unit";
 
 export const INITIAL_MEMBERS: SquadMember[] = [
   {
     id: "mem-01",
-    name: "Tariq Mansoor",
+    name: "Tariq",
     rank: "[CPT | نقيب]",
     role: "Field Strike Lead",
     status: "READY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "2 mins ago",
     deviceType: "Command HUD",
+    unitServiceId: "TU-8412",
+    steamUid: "76561198084120391",
   },
   {
     id: "mem-02",
-    name: "Omar Khaled",
+    name: "Omar",
     rank: "[1LT | ملازم أول]",
     role: "Reconnaissance & Sniper",
     status: "READY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "Just now",
     deviceType: "Tactical Radio",
+    unitServiceId: "TU-6320",
+    steamUid: "76561198063201488",
   },
   {
     id: "mem-03",
-    name: "Ziad El-Sherif",
+    name: "Ziad",
     rank: "[MSG | رقيب أول]",
     role: "Heavy Fire Support & Breaching",
     status: "READY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "5 mins ago",
     deviceType: "Tactical Radio",
+    unitServiceId: "TU-5109",
+    steamUid: "76561198051092841",
   },
   {
     id: "mem-04",
-    name: "Kareem Safwat",
+    name: "Kareem",
     rank: "[SGT | رقيب]",
     role: "Electronic Warfare & Comms",
     status: "STANDBY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "1 min ago",
     deviceType: "Satellite Terminal",
+    unitServiceId: "TU-4891",
+    steamUid: "76561198048915023",
   },
   {
     id: "mem-05",
-    name: "Nour Eldin R.",
+    name: "Nour",
     rank: "[CPL | عريف]",
     role: "Tactical Combat Medic",
     status: "READY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "Just now",
     deviceType: "Mobile Pager",
+    unitServiceId: "TU-3142",
+    steamUid: "76561198031428904",
   },
   {
     id: "mem-06",
-    name: "Youssef Hamdy",
+    name: "Youssef",
     rank: "[PFC | جندي أول]",
     role: "CQC Assault Specialist",
     status: "READY",
     acknowledgedMissions: [],
     lastSeen: "12 mins ago",
     deviceType: "Tactical Radio",
+    unitServiceId: "TU-2975",
+    steamUid: "76561198029754129",
   },
   {
     id: "mem-07",
-    name: "Ahmed Fawzy",
+    name: "Ahmed",
     rank: "[PVT | جندي]",
     role: "Support Gunner",
     status: "READY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "Just now",
     deviceType: "Tactical Radio",
+    unitServiceId: "TU-1840",
+    steamUid: "76561198018409382",
   },
   {
     id: "mem-08",
-    name: "Hossam Badawi",
+    name: "Hossam",
     rank: "[2LT | ملازم]",
     role: "Drone Pilot & Signals",
     status: "READY",
     acknowledgedMissions: ["msn-001"],
     lastSeen: "4 mins ago",
     deviceType: "Command HUD",
+    unitServiceId: "TU-7153",
+    steamUid: "76561198071530911",
   },
 ];
 
@@ -121,6 +137,8 @@ export const INITIAL_MISSIONS: Mission[] = [
     ],
     broadcastCount: 3,
     lastBroadcastTime: "2026-10-22 03:00",
+    imageUrl: "/src/assets/images/tactical_operations_map_1792663265618.jpg",
+    imageFileName: "sat_recon_sector_g14.jpg",
   },
   {
     id: "msn-002",
@@ -141,6 +159,8 @@ export const INITIAL_MISSIONS: Mission[] = [
     weatherConditions: "Clear night sky, wind 8 knots, temperature dropping to 11°C.",
     assignedSquad: ["mem-01", "mem-02", "mem-03", "mem-04", "mem-05", "mem-06"],
     discordUrl: "https://discord.gg/thunderbolt-ops",
+    imageUrl: "/src/assets/images/thunderbolt_tactical_cover_1792663525424.jpg",
+    imageFileName: "night_recon_sector_k09.jpg",
     equipmentList: [
       "Long-Range Optic Scopes with Infrared",
       "Silent Footwear & Ghillie Camouflage",
@@ -173,6 +193,8 @@ export const INITIAL_MISSIONS: Mission[] = [
     weatherConditions: "High heat index (38°C), sandstorm watch pending.",
     assignedSquad: ["mem-01", "mem-03", "mem-05", "mem-06", "mem-07", "mem-08"],
     discordUrl: "https://discord.gg/thunderbolt-ops",
+    imageUrl: "/src/assets/images/thunderbolt_unit_insignia_1792663264729.jpg",
+    imageFileName: "convoy_escort_insignia.jpg",
     equipmentList: [
       "Reinforced Armored Transport",
       "Ground-Penetrating Anti-Mine Scanners",
@@ -233,20 +255,107 @@ export interface RankItem {
   nameEn: string;
   formatted: string;
   insignia: string;
+  isStaffOfficer?: boolean;
+  isCommand?: boolean;
 }
 
 export const AVAILABLE_RANKS: RankItem[] = [
-  { id: 'pfc', code: 'PFC', nameAr: 'جندي أول', nameEn: 'Private First Class', formatted: '[PFC | جندي أول]', insignia: '●●' },
-  { id: 'pvt', code: 'PVT', nameAr: 'جندي', nameEn: 'Private', formatted: '[PVT | جندي]', insignia: '●' },
-  { id: 'cpl', code: 'CPL', nameAr: 'عريف', nameEn: 'Corporal', formatted: '[CPL | عريف]', insignia: '▲' },
-  { id: 'sgt', code: 'SGT', nameAr: 'رقيب', nameEn: 'Sergeant', formatted: '[SGT | رقيب]', insignia: '▲▲' },
-  { id: 'msg', code: 'MSG', nameAr: 'رقيب أول', nameEn: 'Master Sergeant', formatted: '[MSG | رقيب أول]', insignia: '▲▲▲' },
-  { id: '2lt', code: '2LT', nameAr: 'ملازم', nameEn: 'Second Lieutenant', formatted: '[2LT | ملازم]', insignia: '★' },
-  { id: '1lt', code: '1LT', nameAr: 'ملازم أول', nameEn: 'First Lieutenant', formatted: '[1LT | ملازم أول]', insignia: '★★' },
-  { id: 'cpt', code: 'CPT', nameAr: 'نقيب', nameEn: 'Captain', formatted: '[CPT | نقيب]', insignia: '★★★' },
-  { id: 'maj', code: 'MAJ', nameAr: 'رائد', nameEn: 'Major', formatted: '[MAJ | رائد]', insignia: '🦅' },
-  { id: 'ltc', code: 'LTC', nameAr: 'مقدم', nameEn: 'Lieutenant Colonel', formatted: '[LTC | مقدم]', insignia: '🦅★' },
-  { id: 'col', code: 'COL', nameAr: 'عقيد', nameEn: 'Colonel', formatted: '[COL | عقيد]', insignia: '🦅★★' },
-  { id: 'mg', code: 'MG', nameAr: 'لواء', nameEn: 'Major General', formatted: '[MG | لواء]', insignia: '⚔️🦅' },
+  // Enlisted & NCOs
+  { id: 'pfc', code: 'PFC', nameAr: 'جندي أول', nameEn: 'Private First Class', formatted: '[PFC | جندي أول]', insignia: '●●', isCommand: false },
+  { id: 'pvt', code: 'PVT', nameAr: 'جندي', nameEn: 'Private', formatted: '[PVT | جندي]', insignia: '●', isCommand: false },
+  { id: 'cpl', code: 'CPL', nameAr: 'عريف', nameEn: 'Corporal', formatted: '[CPL | عريف]', insignia: '▲', isCommand: false },
+  { id: 'sgt', code: 'SGT', nameAr: 'رقيب', nameEn: 'Sergeant', formatted: '[SGT | رقيب]', insignia: '▲▲', isCommand: false },
+  { id: 'msg', code: 'MSG', nameAr: 'رقيب أول', nameEn: 'Master Sergeant', formatted: '[MSG | رقيب أول]', insignia: '▲▲▲', isCommand: false },
+
+  // Junior Commissioned Officers
+  { id: '2lt', code: '2LT', nameAr: 'ملازم', nameEn: 'Second Lieutenant', formatted: '[2LT | ملازم]', insignia: '★', isCommand: false },
+  { id: '1lt', code: '1LT', nameAr: 'ملازم أول', nameEn: 'First Lieutenant', formatted: '[1LT | ملازم أول]', insignia: '★★', isCommand: false },
+  { id: 'cpt', code: 'CPT', nameAr: 'نقيب', nameEn: 'Captain', formatted: '[CPT | نقيب]', insignia: '★★★', isCommand: false },
+
+  // Field Grade Officers
+  { id: 'maj', code: 'MAJ', nameAr: 'رائد', nameEn: 'Major', formatted: '[MAJ | رائد]', insignia: '🦅', isCommand: false },
+  { id: 'maj_staff', code: 'MAJ', nameAr: 'رائد أ.ح', nameEn: 'Major Staff (p.s.c.)', formatted: '[MAJ | رائد أ.ح]', insignia: '🦅 أ.ح', isStaffOfficer: true, isCommand: false },
+  { id: 'ltc', code: 'LTC', nameAr: 'مقدم', nameEn: 'Lieutenant Colonel', formatted: '[LTC | مقدم]', insignia: '🦅★', isCommand: false },
+  { id: 'ltc_staff', code: 'LTC', nameAr: 'مقدم أ.ح', nameEn: 'Lt. Colonel Staff (p.s.c.)', formatted: '[LTC | مقدم أ.ح]', insignia: '🦅★ أ.ح', isStaffOfficer: true, isCommand: false },
+
+  // Command Ranks (From Colonel to Major General / من أول العقيد لحد اللواء)
+  { id: 'col', code: 'COL', nameAr: 'عقيد', nameEn: 'Colonel', formatted: '[COL | عقيد]', insignia: '🦅★★', isCommand: true },
+  { id: 'col_staff', code: 'COL', nameAr: 'عقيد أ.ح', nameEn: 'Colonel Staff (p.s.c.)', formatted: '[COL | عقيد أ.ح]', insignia: '🦅★★ أ.ح', isStaffOfficer: true, isCommand: true },
+  { id: 'bgd', code: 'BGD', nameAr: 'عميد', nameEn: 'Brigadier General', formatted: '[BGD | عميد]', insignia: '🦅★★★', isCommand: true },
+  { id: 'bgd_staff', code: 'BGD', nameAr: 'عميد أ.ح', nameEn: 'Brigadier General Staff (p.s.c.)', formatted: '[BGD | عميد أ.ح]', insignia: '🦅★★★ أ.ح', isStaffOfficer: true, isCommand: true },
+  { id: 'mg', code: 'MG', nameAr: 'لواء', nameEn: 'Major General', formatted: '[MG | لواء]', insignia: '⚔️🦅', isCommand: true },
+  { id: 'mg_staff', code: 'MG', nameAr: 'لواء أ.ح', nameEn: 'Major General Staff (p.s.c.)', formatted: '[MG | لواء أ.ح]', insignia: '⚔️🦅 أ.ح', isStaffOfficer: true, isCommand: true },
 ];
+
+/**
+ * Checks if a rank belongs to Command level:
+ * From Colonel (العقيد) up to Major General (اللواء) & General Officers.
+ */
+export const isCommandRank = (rank?: string): boolean => {
+  if (!rank) return false;
+  const s = rank.toLowerCase();
+
+  // Explicitly check for ranks strictly below Colonel to prevent false positives
+  if (
+    s.includes('مقدم') ||
+    s.includes('ltc') ||
+    s.includes('lieutenant colonel') ||
+    s.includes('رائد') ||
+    (s.includes('maj') && !s.includes('mg') && !s.includes('major general')) ||
+    s.includes('نقيب') ||
+    s.includes('cpt') ||
+    s.includes('ملازم') ||
+    (s.includes('lt') && !s.includes('ltg')) ||
+    s.includes('رقيب') ||
+    s.includes('sgt') ||
+    s.includes('عريف') ||
+    s.includes('cpl') ||
+    s.includes('جندي') ||
+    s.includes('pvt') ||
+    s.includes('pfc')
+  ) {
+    // Only true if it genuinely also has a high rank designation
+    const isCol = s.includes('عقيد') || /\[col\s*\|/i.test(s) || (/\bcol\b/i.test(s) && !s.includes('ltc'));
+    const isBrig = s.includes('عميد') || /\[(bgd|brig)\s*\|/i.test(s) || /\b(bgd|brig)\b/i.test(s);
+    const isMG = s.includes('لواء') || /\[mg\s*\|/i.test(s) || /\bmg\b/i.test(s) || s.includes('major general');
+    const isHigher = s.includes('فريق') || s.includes('مشير') || /\[(ltg|gen|fm)\s*\|/i.test(s);
+    return isCol || isBrig || isMG || isHigher;
+  }
+
+  // Positive matches for Colonel to Major General
+  const isCol = s.includes('عقيد') || /\[col\s*\|/i.test(s) || /\bcol\b/i.test(s);
+  const isBrig = s.includes('عميد') || /\[(bgd|brig)\s*\|/i.test(s) || /\b(bgd|brig)\b/i.test(s);
+  const isMG = s.includes('لواء') || /\[mg\s*\|/i.test(s) || /\bmg\b/i.test(s) || s.includes('major general');
+  const isHigher = s.includes('فريق') || s.includes('مشير') || /\[(ltg|gen|fm)\s*\|/i.test(s);
+
+  return isCol || isBrig || isMG || isHigher;
+};
+
+/**
+ * Checks if a rank holds Staff Officer / أركان حرب qualification
+ */
+export const isStaffRank = (rank?: string): boolean => {
+  if (!rank) return false;
+  return (
+    rank.includes('أركان حرب') ||
+    rank.includes('اركان حرب') ||
+    rank.includes('أ.ح') ||
+    rank.includes('ا.ح') ||
+    rank.toLowerCase().includes('staff') ||
+    rank.toLowerCase().includes('p.s.c')
+  );
+};
+
+/**
+ * Returns role badge text: "Command" from Colonel to Major General, otherwise "Squad Operator"
+ */
+export const getRoleTitle = (rank?: string, role?: string): string => {
+  if (isCommandRank(rank)) {
+    return 'Command';
+  }
+  if (role === 'instructor') {
+    return 'Lead Operator';
+  }
+  return 'Squad Operator';
+};
 

@@ -90,8 +90,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onEnter, onDirectToM
               <Zap className="w-3.5 h-3.5 fill-[#f2c14e] text-[#f2c14e]" />
               <span className="font-bold">Under the command of Maj. Gen. dragon</span>
             </div>
-            <span className="text-[11px] text-stone-400 font-sans">
-              تحت قيادة اللواء أ.ح dragon
+            <span className="text-[11px] text-stone-400 font-mono tracking-wider">
+              SPECIAL OPERATIONS COMMAND · HQ
             </span>
           </div>
 

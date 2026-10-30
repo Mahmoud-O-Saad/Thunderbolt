@@ -16,6 +16,11 @@ export interface UserAccount {
   approvalStatus?: AccountApprovalStatus; // 'approved' | 'pending' | 'rejected'
   requestedRank?: string;
   email?: string;
+  steamUid?: string; // Steam 64-bit ID or custom UID
+  unitServiceId?: string; // e.g. "TU-9198"
+  authProvider?: 'google' | 'discord' | 'manual';
+  linkedGmail?: string;
+  linkedDiscord?: string;
   joinedDate: string;
   isRegistered: boolean;
 }
@@ -30,6 +35,8 @@ export interface SquadMember {
   acknowledgedMissions: string[]; // Mission IDs
   lastSeen: string;
   deviceType: 'Tactical Radio' | 'Satellite Terminal' | 'Mobile Pager' | 'Command HUD';
+  steamUid?: string;
+  unitServiceId?: string; // e.g. "TU-9198"
 }
 
 export interface TacticalObjective {
@@ -64,6 +71,10 @@ export interface Mission {
   lastBroadcastTime?: string;
   discordUrl?: string; // Discord event / registration link
   attendance?: Record<string, MissionAttendanceStatus>;
+  imageUrl?: string; // Cover image or tactical recon map
+  imageFileName?: string; // Original uploaded file name
+  audioUrl?: string; // Voice briefing audio file (base64 data URL or external URL)
+  audioFileName?: string; // Original uploaded audio file name
 }
 
 export interface BroadcastNotification {

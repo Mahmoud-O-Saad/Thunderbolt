@@ -25,15 +25,13 @@ export const UnitMembersView: React.FC<UnitMembersViewProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">
             <Shield className="w-4 h-4 text-amber-500" />
-            <span>THUNDERBOLT UNIT SQUAD DIRECTORY · قوة الصاعقة</span>
+            <span>THUNDERBOLT UNIT SQUAD DIRECTORY</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-            {isAr ? 'قائمة مقاتلي وحدة الصاعقة وجاهزية العمليات' : 'Unit Operators & Tactical Readiness Roster'}
+            Unit Operators & Tactical Readiness Roster
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {isAr 
-              ? 'كافة مقاتلي الوحدة يستلمون إشعارات المهام فور بثها من غرفة القيادة.' 
-              : 'All operators receive real-time mission briefs and notifications dispatched by Commander Dragon.'}
+            All operators receive real-time mission briefs and notifications dispatched by Commander Dragon.
           </p>
         </div>
 
@@ -63,7 +61,12 @@ export const UnitMembersView: React.FC<UnitMembersViewProps> = ({
               <div>
                 {/* Member Top Bar: Unboxed metadata */}
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-2 border-b border-slate-800/80">
-                  <span className="font-bold text-[#f2c14e]">{member.rank}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-[#f2c14e]">{member.rank}</span>
+                    <span className="text-[10px] text-stone-300 font-bold bg-black/60 px-1.5 py-0.5 rounded border border-stone-700">
+                      {member.unitServiceId || 'TU-9198'}
+                    </span>
+                  </div>
                   <span aria-hidden="true" className="text-slate-600">·</span>
                   <span className={member.status === 'READY' ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
                     {member.status}
@@ -117,7 +120,7 @@ export const UnitMembersView: React.FC<UnitMembersViewProps> = ({
                   className="px-2.5 py-1 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <Radio className="w-3 h-3" />
-                  <span>{isAr ? 'إرسال إشعار للمقاتل' : 'Send Alert Ping'}</span>
+                  <span>Send Alert Ping</span>
                 </button>
               </div>
             </div>

@@ -41,7 +41,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         <div className="flex items-center gap-3 shrink-0">
           <button 
             onClick={onShowSplash}
-            title={isAr ? "عرض شاشة البداية وشعار الوحدة" : "Show Unit Emblem & Splash Screen"}
+            title="Show Unit Emblem & Splash Screen"
             className="flex items-center gap-2.5 text-left group cursor-pointer"
           >
             <div className="w-9 h-9 rounded-lg overflow-hidden border border-amber-500/40 shadow-sm shadow-amber-500/10 group-hover:border-amber-400 transition-colors">
@@ -74,7 +74,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               activeTab === 'missions' ? 'text-amber-400 border-b-2 border-amber-400 font-semibold' : ''
             }`}
           >
-            {isAr ? 'المهام التكتيكية' : 'Missions Feed'}
+            Missions Feed
           </button>
 
           {/* Dedicated Mission Page Direct Nav Button */}
@@ -86,7 +86,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             className="transition-colors whitespace-nowrap shrink-0 py-1 text-amber-400 font-bold flex items-center gap-1.5 hover:text-amber-300 cursor-pointer"
           >
             <Radio className="w-3.5 h-3.5 text-amber-400" />
-            <span>{isAr ? 'صفحة المهمة (22/10)' : 'Mission Page (22/10)'}</span>
+            <span>Mission Page (22/10)</span>
           </button>
 
           <button
@@ -99,7 +99,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>{isAr ? 'أعضاء الوحدة' : 'Unit Squad (All)'}</span>
+            <span>Unit Squad (All)</span>
           </button>
 
           <button
@@ -111,7 +111,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               activeTab === 'briefing' ? 'text-amber-400 border-b-2 border-amber-400 font-semibold' : ''
             }`}
           >
-            {isAr ? 'غرفة الإيجاز الصوتي' : 'Briefing Center'}
+            Briefing Center
           </button>
 
           <button
@@ -124,7 +124,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             }`}
           >
             <Bell className="w-3.5 h-3.5" />
-            <span>{isAr ? 'الإشعارات' : 'Broadcasts'}</span>
+            <span>Broadcasts</span>
             {unreadCount > 0 && (
               <span className="text-[10px] bg-amber-500 text-slate-950 font-mono font-bold px-1.5 py-0.2 rounded-full tabular-nums">
                 {unreadCount}
@@ -144,7 +144,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-lg transition-all shadow-md shadow-amber-500/20 cursor-pointer active:scale-95"
           >
             <Radio className="w-3.5 h-3.5 fill-slate-950" />
-            <span>{isAr ? 'صفحة المهمة' : 'Mission Page'}</span>
+            <span>Mission Page</span>
           </button>
 
           {/* Sound Toggle */}
@@ -156,16 +156,6 @@ export const TopNav: React.FC<TopNavProps> = ({
             {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
 
-          {/* Language Toggle */}
-          <button
-            onClick={onToggleLang}
-            title="Switch Language (English / العربية)"
-            className="px-2.5 py-1.5 text-xs font-semibold rounded border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <Globe className="w-3.5 h-3.5 text-slate-400" />
-            <span>{isAr ? 'EN' : 'عربي'}</span>
-          </button>
-
           {/* Primary Action Button */}
           <button
             onClick={() => {
@@ -175,7 +165,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             className="px-3.5 py-2 text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-amber-400" />
-            <span>{isAr ? 'إصدار مهمة' : 'Dispatch'}</span>
+            <span>Dispatch</span>
           </button>
         </div>
       </div>
@@ -190,25 +180,25 @@ export const TopNav: React.FC<TopNavProps> = ({
           className="py-1 px-2.5 rounded font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1 whitespace-nowrap"
         >
           <Radio className="w-3.5 h-3.5" />
-          <span>{isAr ? 'صفحة المهمة' : 'Mission Page'}</span>
+          <span>Mission Page</span>
         </button>
         <button
           onClick={() => setActiveTab('missions')}
           className={`py-1 px-2 rounded whitespace-nowrap ${activeTab === 'missions' ? 'text-amber-400 font-bold' : 'text-slate-400'}`}
         >
-          {isAr ? 'المهام' : 'Missions'}
+          Missions
         </button>
         <button
           onClick={() => setActiveTab('squad')}
           className={`py-1 px-2 rounded flex items-center gap-1 whitespace-nowrap ${activeTab === 'squad' ? 'text-amber-400 font-bold' : 'text-slate-400'}`}
         >
-          <span>{isAr ? 'الأعضاء' : 'Squad'}</span>
+          <span>Squad</span>
         </button>
         <button
           onClick={() => setActiveTab('briefing')}
           className={`py-1 px-2 rounded whitespace-nowrap ${activeTab === 'briefing' ? 'text-amber-400 font-bold' : 'text-slate-400'}`}
         >
-          {isAr ? 'الإيجاز' : 'Briefing'}
+          Briefing
         </button>
       </div>
     </header>

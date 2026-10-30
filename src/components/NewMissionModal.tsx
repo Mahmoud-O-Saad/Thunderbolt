@@ -1,7 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mission, SquadMember, Priority } from '../types';
-import { X, Radio, Calendar, Clock, MapPin, Shield, Check, Plus, Trash2 } from 'lucide-react';
-import { tacticalAudio } from '../utils/audio';
+import { 
+  X, 
+  Radio, 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Check, 
+  Plus, 
+  Trash2, 
+  Image as ImageIcon, 
+  Upload, 
+  Play, 
+  Square, 
+  Volume2, 
+  FileAudio, 
+  Link as LinkIcon 
+} from 'lucide-react';
+import { tacticalAudio, playAudioUrl, stopAllAudio } from '../utils/audio';
 
 interface NewMissionModalProps {
   onClose: () => void;
@@ -11,15 +27,30 @@ interface NewMissionModalProps {
   lang: 'en' | 'ar';
 }
 
+const TACTICAL_IMAGE_PRESETS = [
+  {
+    name: 'Satellite Recon Map',
+    url: '/src/assets/images/tactical_operations_map_1792663265618.jpg',
+    filename: 'sat_recon_map.jpg',
+  },
+  {
+    name: 'Tactical Cover Ops',
+    url: '/src/assets/images/thunderbolt_tactical_cover_1792663525424.jpg',
+    filename: 'tactical_cover.jpg',
+  },
+  {
+    name: 'Thunderbolt Insignia',
+    url: '/src/assets/images/thunderbolt_unit_insignia_1792663264729.jpg',
+    filename: 'unit_insignia.jpg',
+  },
+];
+
 export const NewMissionModal: React.FC<NewMissionModalProps> = ({
   onClose,
   onDispatchMission,
   allMembers,
   commanderName,
-  lang,
 }) => {
-  const isAr = lang === 'ar';
-
   const [codeName, setCodeName] = useState('OPERATION DESERT VIPER');
   const [title, setTitle] = useState('Rapid Reconnaissance & Sector Perimeter Containment');
   const [date, setDate] = useState('2026-10-22');
@@ -40,6 +71,24 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
   const [weatherConditions, setWeatherConditions] = useState(
     'Night fog clearing by 06:30 hours. Visibility 400m. Wind NE 12 knots.'
   );
+  const [discordUrl, setDiscordUrl] = useState('https://discord.gg/thunderbolt-ops');
+  
+  // Media states: Image & Audio
+  const [imageUrl, setImageUrl] = useState<string>('/src/assets/images/tactical_operations_map_1792663265618.jpg');
+  const [imageFileName, setImageFileName] = useState<string>('tactical_recon_satellite.jpg');
+  const [imageFileSize, setImageFileSize] = useState<string>('Standard Preset');
+  const [imageUploadError, setImageUploadError] = useState<string>('');
+
+  const [audioUrl, setAudioUrl] = useState<string>('');
+  const [audioFileName, setAudioFileName] = useState<string>('');
+  const [audioFileSize, setAudioFileSize] = useState<string>('');
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+  const [audioUploadError, setAudioUploadError] = useState<string>('');
+  
+  const stopAudioRef = useRef<(() => void) | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const audioInputRef = useRef<HTMLInputElement | null>(null);
+
   const [assignedSquad, setAssignedSquad] = useState<string[]>(allMembers.map(m => m.id));
   const [objectives, setObjectives] = useState<string[]>([
     'Secure perimeter outpost by 06:15 hours',
@@ -47,6 +96,128 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
     'Maintain continuous radio link with Dragon Command HQ',
   ]);
   const [newObjectiveText, setNewObjectiveText] = useState('');
+
+  // Handle Image File Upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageUploadError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageUploadError('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+
+    // Check size (warn if > 4MB to prevent localStorage overflow)
+    if (file.size > 4 * 1024 * 1024) {
+      setImageUploadError('Image size exceeds 4MB. Please upload a smaller image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setImageUrl(dataUrl);
+        setImageFileName(file.name);
+        setImageFileSize(`${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+        tacticalAudio.playSuccessBeep();
+      }
+    };
+    reader.onerror = () => {
+      setImageUploadError('Failed to read image file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle Audio File Upload
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAudioUploadError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg|m4a|aac)$/i)) {
+      setAudioUploadError('Please select a valid audio file (MP3, WAV, OGG, M4A).');
+      return;
+    }
+
+    // Limit to 7MB to prevent localStorage exhaustion
+    if (file.size > 7 * 1024 * 1024) {
+      setAudioUploadError('Audio file is too large (max 7MB).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setAudioUrl(dataUrl);
+        setAudioFileName(file.name);
+        setAudioFileSize(`${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+        tacticalAudio.playSuccessBeep();
+      }
+    };
+    reader.onerror = () => {
+      setAudioUploadError('Failed to read audio file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Toggle Audio Preview Playback
+  const toggleAudioPreview = () => {
+    if (!audioUrl) return;
+
+    if (isPlayingAudio) {
+      if (stopAudioRef.current) {
+        stopAudioRef.current();
+        stopAudioRef.current = null;
+      }
+      stopAllAudio();
+      setIsPlayingAudio(false);
+    } else {
+      tacticalAudio.playRadioClick();
+      setIsPlayingAudio(true);
+      const stopFn = playAudioUrl(audioUrl, () => {
+        setIsPlayingAudio(false);
+        stopAudioRef.current = null;
+      });
+      stopAudioRef.current = stopFn;
+    }
+  };
+
+  const removeAudio = () => {
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+      stopAudioRef.current = null;
+    }
+    stopAllAudio();
+    setIsPlayingAudio(false);
+    setAudioUrl('');
+    setAudioFileName('');
+    setAudioFileSize('');
+    if (audioInputRef.current) {
+      audioInputRef.current.value = '';
+    }
+    tacticalAudio.playRadioClick();
+  };
+
+  const removeImage = () => {
+    setImageUrl('');
+    setImageFileName('');
+    setImageFileSize('');
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+    tacticalAudio.playRadioClick();
+  };
+
+  const selectImagePreset = (preset: typeof TACTICAL_IMAGE_PRESETS[0]) => {
+    tacticalAudio.playRadioClick();
+    setImageUrl(preset.url);
+    setImageFileName(preset.filename);
+    setImageFileSize('Tactical Preset');
+    setImageUploadError('');
+  };
 
   const toggleMemberSelection = (id: string) => {
     tacticalAudio.playRadioClick();
@@ -69,9 +240,23 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
     setObjectives(objectives.filter((_, i) => i !== index));
   };
 
+  const handleModalClose = () => {
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+    }
+    stopAllAudio();
+    tacticalAudio.playRadioClick();
+    onClose();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !codeName.trim()) return;
+
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+    }
+    stopAllAudio();
 
     const newMission: Mission = {
       id: `msn-${Date.now()}`,
@@ -90,6 +275,11 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
       rulesOfEngagement,
       weatherConditions,
       assignedSquad,
+      imageUrl: imageUrl || undefined,
+      imageFileName: imageFileName || undefined,
+      audioUrl: audioUrl || undefined,
+      audioFileName: audioFileName || undefined,
+      discordUrl: discordUrl || undefined,
       equipmentList: [
         'Night-Vision Goggles Gen IV',
         'Tactical Encrypted Radios',
@@ -109,8 +299,8 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-[#0F172A] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto text-slate-100 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-sm overflow-y-auto">
+      <div className="relative w-full max-w-4xl bg-[#0F172A] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto text-slate-100 max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -130,16 +320,13 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
                 COMMAND DISPATCH CONSOLE · {commanderName}
               </span>
               <h2 className="text-lg font-bold text-white">
-                {isAr ? 'إصدار مهمة تكتيكية وبث الإشعار للجميع' : 'Dispatch New Mission & Broadcast to Squad'}
+                Dispatch New Mission & Broadcast to Squad
               </h2>
             </div>
           </div>
 
           <button
-            onClick={() => {
-              tacticalAudio.playRadioClick();
-              onClose();
-            }}
+            onClick={handleModalClose}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -147,12 +334,12 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
         </div>
 
         {/* Scrollable Form */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
           {/* Row 1: Codename & Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
               <label className="text-xs font-mono text-slate-300 font-semibold block">
-                {isAr ? 'الاسم الكودي للعملية:' : 'MISSION CODENAME:'}
+                MISSION CODENAME:
               </label>
               <input
                 type="text"
@@ -166,17 +353,17 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
 
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-slate-300 font-semibold block">
-                {isAr ? 'مستوى الأهمية:' : 'PRIORITY LEVEL:'}
+                PRIORITY LEVEL:
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono focus:border-amber-500 focus:outline-none"
               >
-                <option value="CRITICAL">CRITICAL (طارئ)</option>
-                <option value="HIGH">HIGH (عالي)</option>
-                <option value="TACTICAL">TACTICAL (تكتيكي)</option>
-                <option value="ROUTINE">ROUTINE (اعتيادي)</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="HIGH">HIGH</option>
+                <option value="TACTICAL">TACTICAL</option>
+                <option value="ROUTINE">ROUTINE</option>
               </select>
             </div>
           </div>
@@ -184,7 +371,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
           {/* Row 2: Title */}
           <div className="space-y-1.5">
             <label className="text-xs font-mono text-slate-300 font-semibold block">
-              {isAr ? 'عنوان المهمة والهدف الرئيسي:' : 'MISSION TITLE:'}
+              MISSION TITLE:
             </label>
             <input
               type="text"
@@ -196,12 +383,12 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
             />
           </div>
 
-          {/* Row 3: Target Date (Highlighted: Thursday 22/10/2026), Time & Day */}
+          {/* Row 3: Target Date, Time & Day */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-900/90 rounded-xl border border-slate-800">
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-amber-400 font-bold block flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" />
-                <span>{isAr ? 'يوم الأسبوع:' : 'DAY OF WEEK:'}</span>
+                <span>DAY OF WEEK:</span>
               </label>
               <input
                 type="text"
@@ -216,7 +403,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-amber-400 font-bold block flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" />
-                <span>{isAr ? 'تاريخ المهمة:' : 'TARGET DATE:'}</span>
+                <span>TARGET DATE:</span>
               </label>
               <input
                 type="text"
@@ -231,7 +418,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-amber-400 font-bold block flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
-                <span>{isAr ? 'توقيت التنفيذ:' : 'H-HOUR TIME:'}</span>
+                <span>H-HOUR TIME:</span>
               </label>
               <input
                 type="text"
@@ -249,7 +436,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-slate-300 font-semibold block flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-amber-500" />
-                <span>{isAr ? 'القطاع المستهدف:' : 'TARGET SECTOR / ZONE:'}</span>
+                <span>TARGET SECTOR / ZONE:</span>
               </label>
               <input
                 type="text"
@@ -262,7 +449,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
 
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-slate-300 font-semibold block">
-                {isAr ? 'إحداثيات الإنزال والتمركز:' : 'GRID COORDINATES:'}
+                GRID COORDINATES:
               </label>
               <input
                 type="text"
@@ -274,11 +461,251 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
             </div>
           </div>
 
+          {/* ======================================================== */}
+          {/* NEW SECTION 1: MISSION IMAGE UPLOAD (PHOTO / TACTICAL MAP) */}
+          {/* ======================================================== */}
+          <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-mono text-amber-400 font-bold block flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-amber-400" />
+                <span>MISSION COVER IMAGE / RECON SATELLITE MAP:</span>
+              </label>
+              <span className="text-[11px] font-mono text-slate-400">
+                Uploaded by Instructor · Displayed to All
+              </span>
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+
+            {/* Image Preview & Upload Controls */}
+            {imageUrl ? (
+              <div className="relative rounded-xl border border-slate-700 overflow-hidden bg-slate-950 flex flex-col sm:flex-row items-center gap-4 p-3">
+                <div className="relative w-full sm:w-48 h-32 rounded-lg overflow-hidden border border-slate-800 bg-slate-900 shrink-0">
+                  <img
+                    src={imageUrl}
+                    alt="Mission Cover Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded bg-slate-950/80 text-[10px] font-mono text-amber-400 border border-amber-500/30">
+                    PREVIEW
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-2 text-xs w-full">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono font-bold text-white truncate max-w-xs">
+                        {imageFileName || 'Uploaded Image'}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                        Status: <span className="text-emerald-400">Attached</span> · {imageFileSize}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Change Image</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-950/70 text-rose-300 border border-rose-800/40 rounded-lg text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => imageInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-700 hover:border-amber-500/60 rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-950/40"
+              >
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="p-2.5 rounded-full bg-slate-800 text-amber-400">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-200 block">
+                      Click to upload custom operation image or tactical map
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Supports JPG, PNG, WEBP (Max 4MB)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {imageUploadError && (
+              <p className="text-xs text-rose-400 font-mono">{imageUploadError}</p>
+            )}
+
+            {/* Tactical Presets Quick Selection */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <span className="text-[11px] font-mono text-slate-400 block mb-1.5">
+                Or select tactical preset imagery:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {TACTICAL_IMAGE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => selectImagePreset(preset)}
+                    className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors cursor-pointer ${
+                      imageUrl === preset.url
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* NEW SECTION 2: AUDIO BRIEFING FILE UPLOAD */}
+          {/* ======================================================== */}
+          <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-mono text-amber-400 font-bold block flex items-center gap-2">
+                <FileAudio className="w-4 h-4 text-amber-400" />
+                <span>SPOKEN AUDIO BRIEFING / VOICE TRANSMISSION FILE:</span>
+              </label>
+              <span className="text-[11px] font-mono text-slate-400">
+                Playable by all operators on mission
+              </span>
+            </div>
+
+            {/* Hidden audio input */}
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*"
+              onChange={handleAudioUpload}
+              className="hidden"
+            />
+
+            {audioUrl ? (
+              <div className="p-4 bg-slate-950 rounded-xl border border-slate-700 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                      <Volume2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-mono font-bold text-white truncate max-w-sm">
+                        {audioFileName || 'Uploaded Tactical Audio'}
+                      </p>
+                      <p className="text-[11px] font-mono text-slate-400">
+                        File attached · {audioFileSize}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Play preview and Remove buttons */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={toggleAudioPreview}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isPlayingAudio
+                          ? 'bg-rose-500 text-white animate-pulse'
+                          : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                      }`}
+                    >
+                      {isPlayingAudio ? (
+                        <>
+                          <Square className="w-3.5 h-3.5 fill-current" />
+                          <span>Stop Preview</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span>Test Play Audio</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={removeAudio}
+                      className="p-1.5 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 rounded-lg transition-colors cursor-pointer"
+                      title="Remove audio file"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Animated waveform visualizer when previewing */}
+                <div className="flex items-center justify-between gap-1 h-6 px-2 bg-slate-900 rounded border border-slate-800">
+                  {Array.from({ length: 28 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1 rounded-full transition-all duration-150 ${
+                        isPlayingAudio ? 'bg-amber-400' : 'bg-slate-700'
+                      }`}
+                      style={{
+                        height: isPlayingAudio
+                          ? `${Math.sin(i * 0.4 + Date.now() / 300) * 35 + 50}%`
+                          : '20%',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => audioInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-700 hover:border-amber-500/60 rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-950/40"
+              >
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="p-2.5 rounded-full bg-slate-800 text-amber-400">
+                    <FileAudio className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-200 block">
+                      Click to upload custom voice briefing audio file
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Supports MP3, WAV, OGG, M4A (Max 7MB)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {audioUploadError && (
+              <p className="text-xs text-rose-400 font-mono">{audioUploadError}</p>
+            )}
+
+            <div className="text-[11px] font-mono text-slate-500">
+              * Note: If no custom audio file is uploaded, our tactical HUD voice will read the written briefing script automatically.
+            </div>
+          </div>
+
           {/* Row 5: Detailed Briefing (Explanation of what the mission is about) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-mono text-amber-400 font-bold block">
-                {isAr ? 'الشرح والإيجاز التكتيكي الشامل (ما هي تفاصيل المهمة):' : 'TACTICAL BRIEFING OVERVIEW (What this mission is about):'}
+                TACTICAL BRIEFING OVERVIEW (What this mission is about):
               </label>
               <span className="text-[10px] font-mono text-slate-400">Read by all operators</span>
             </div>
@@ -292,10 +719,25 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
             />
           </div>
 
+          {/* Discord Registration Link */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono text-slate-300 font-semibold block flex items-center gap-1.5">
+              <LinkIcon className="w-3.5 h-3.5 text-[#5865F2]" />
+              <span>DISCORD MISSION REGISTRATION URL:</span>
+            </label>
+            <input
+              type="url"
+              value={discordUrl}
+              onChange={(e) => setDiscordUrl(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-amber-500 focus:outline-none"
+              placeholder="https://discord.gg/your-unit-event"
+            />
+          </div>
+
           {/* Row 6: Objectives List */}
           <div className="space-y-2">
             <label className="text-xs font-mono text-slate-300 font-semibold block">
-              {isAr ? 'قائمة الأهداف التكتيكية الميدانية:' : 'TACTICAL OBJECTIVES:'}
+              TACTICAL OBJECTIVES:
             </label>
             <div className="space-y-1.5">
               {objectives.map((obj, i) => (
@@ -318,7 +760,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
                 type="text"
                 value={newObjectiveText}
                 onChange={(e) => setNewObjectiveText(e.target.value)}
-                placeholder={isAr ? "أضف هدفاً تكتيكياً جديداً..." : "Add specific tactical objective..."}
+                placeholder="Add specific tactical objective..."
                 className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -333,7 +775,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-mono font-bold flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>{isAr ? 'إضافة' : 'Add'}</span>
+                <span>Add</span>
               </button>
             </div>
           </div>
@@ -341,7 +783,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
           {/* Row 7: Squad Member Assignment */}
           <div className="space-y-2">
             <label className="text-xs font-mono text-slate-300 font-semibold block">
-              {isAr ? 'المقاتلون المكلفون (سيصلهم الإشعار فوراً):' : 'ASSIGNED OPERATORS (Instant Alert Sent to All):'}
+              ASSIGNED OPERATORS (Instant Alert Sent to All):
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {allMembers.map((member) => {
@@ -379,13 +821,10 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                onClose();
-              }}
+              onClick={handleModalClose}
               className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer transition-colors"
             >
-              {isAr ? 'إلغاء' : 'Cancel'}
+              Cancel
             </button>
 
             <button
@@ -394,7 +833,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
               className="px-5 py-2.5 text-xs font-black text-slate-950 bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
             >
               <Radio className="w-4 h-4" />
-              <span>{isAr ? 'بث المهمة وإرسال الإشعار للكل' : 'Broadcast Mission & Notify All'}</span>
+              <span>Broadcast Mission & Notify All</span>
             </button>
           </div>
         </div>

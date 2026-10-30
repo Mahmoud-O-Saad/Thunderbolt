@@ -1,7 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mission, SquadMember } from '../types';
-import { Play, Square, Radio, Shield, MapPin, Calendar, Clock, Crosshair, Users, Volume2 } from 'lucide-react';
-import { tacticalAudio, speakBriefing, stopBriefing } from '../utils/audio';
+import { 
+  Play, 
+  Square, 
+  Radio, 
+  Shield, 
+  MapPin, 
+  Calendar, 
+  Clock, 
+  Crosshair, 
+  Volume2, 
+  FileAudio, 
+  Image as ImageIcon 
+} from 'lucide-react';
+import { tacticalAudio, speakBriefing, stopAllAudio, playAudioUrl } from '../utils/audio';
 
 interface BriefingRoomViewProps {
   missions: Mission[];
@@ -14,28 +26,61 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
   missions,
   allMembers,
   onSelectMission,
-  lang,
 }) => {
-  const isAr = lang === 'ar';
   const [selectedMissionId, setSelectedMissionId] = useState<string>(missions[0]?.id || '');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const stopAudioRef = useRef<(() => void) | null>(null);
 
   const currentMission = missions.find(m => m.id === selectedMissionId) || missions[0];
+
+  useEffect(() => {
+    return () => {
+      if (stopAudioRef.current) {
+        stopAudioRef.current();
+      }
+      stopAllAudio();
+    };
+  }, []);
 
   const handleAudioPlayback = () => {
     if (!currentMission) return;
     if (isPlaying) {
-      stopBriefing();
+      if (stopAudioRef.current) {
+        stopAudioRef.current();
+        stopAudioRef.current = null;
+      }
+      stopAllAudio();
       setIsPlaying(false);
     } else {
       tacticalAudio.playRadioClick();
       setIsPlaying(true);
-      const textToSpeak = `Briefing for ${currentMission.codeName}. Under command of ${currentMission.commander}. Date of operation: ${currentMission.dayName}, ${currentMission.date} at ${currentMission.time}. Location: ${currentMission.targetSector}. ${currentMission.briefingOverview} Rules of engagement: ${currentMission.rulesOfEngagement}.`;
-      speakBriefing(textToSpeak, () => setIsPlaying(false));
+      if (currentMission.audioUrl) {
+        const stopFn = playAudioUrl(currentMission.audioUrl, () => {
+          setIsPlaying(false);
+          stopAudioRef.current = null;
+        });
+        stopAudioRef.current = stopFn;
+      } else {
+        const textToSpeak = `Briefing for ${currentMission.codeName}. Under command of ${currentMission.commander}. Date of operation: ${currentMission.dayName}, ${currentMission.date} at ${currentMission.time}. Location: ${currentMission.targetSector}. ${currentMission.briefingOverview} Rules of engagement: ${currentMission.rulesOfEngagement}.`;
+        speakBriefing(textToSpeak, () => setIsPlaying(false));
+      }
     }
   };
 
+  const handleSelectTab = (mId: string) => {
+    tacticalAudio.playRadioClick();
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+      stopAudioRef.current = null;
+    }
+    stopAllAudio();
+    setIsPlaying(false);
+    setSelectedMissionId(mId);
+  };
+
   if (!currentMission) return null;
+
+  const displayImage = currentMission.imageUrl || '/src/assets/images/tactical_operations_map_1792663265618.jpg';
 
   return (
     <div className="space-y-6">
@@ -47,12 +92,10 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
             <span>TACTICAL OPS ROOM // AUDIO BRIEFING DISPATCH</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-            {isAr ? 'غرفة الإيجاز التكتيكي والاستماع الصوتي' : 'Tactical Briefing Room & Audio Overwatch'}
+            Tactical Briefing Room & Audio Overwatch
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {isAr
-              ? 'استمع إلى الإيجاز الصوتي المسجل للمهمة وتعرف على كافة التعليمات العملياتية.'
-              : 'Listen to spoken operational orders and inspect tactical sector maps.'}
+            Listen to spoken operational orders and inspect tactical sector maps.
           </p>
         </div>
 
@@ -61,14 +104,7 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
           {missions.map((m) => (
             <button
               key={m.id}
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                setSelectedMissionId(m.id);
-                if (isPlaying) {
-                  stopBriefing();
-                  setIsPlaying(false);
-                }
-              }}
+              onClick={() => handleSelectTab(m.id)}
               className={`px-3 py-1.5 text-xs font-mono font-bold rounded transition-colors whitespace-nowrap cursor-pointer ${
                 m.id === currentMission.id
                   ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -102,6 +138,12 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
                   <span>·</span>
                   <span>{currentMission.targetSector}</span>
                 </div>
+                {currentMission.audioUrl && (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded w-fit">
+                    <FileAudio className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Uploaded Audio File: {currentMission.audioFileName || 'Voice Recording Attached'}</span>
+                  </div>
+                )}
               </div>
 
               {/* Play Audio Button */}
@@ -114,7 +156,11 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
                 }`}
               >
                 {isPlaying ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                <span>{isPlaying ? (isAr ? 'إيقاف الإيجاز' : 'Stop Audio') : (isAr ? 'تشغيل الإيجاز الصوتي' : 'Play Audio Briefing')}</span>
+                <span>
+                  {isPlaying 
+                    ? 'Stop Audio' 
+                    : (currentMission.audioUrl ? 'Play Attached Audio Order' : 'Play Audio Briefing')}
+                </span>
               </button>
             </div>
 
@@ -139,7 +185,7 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
             {/* Full Written Briefing Text */}
             <div className="space-y-2">
               <span className="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider block">
-                {isAr ? 'نص الشرح التكتيكي المكتوب:' : 'SPOKEN BRIEFING SCRIPT & DETAILS:'}
+                SPOKEN BRIEFING SCRIPT & DETAILS:
               </span>
               <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800 font-sans">
                 {currentMission.briefingOverview}
@@ -150,14 +196,19 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
           {/* Tactical Map Display */}
           <div className="rounded-2xl border border-slate-800 overflow-hidden bg-slate-950 relative">
             <div className="p-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-              <span className="text-amber-400 font-semibold">
-                SATELLITE SECTOR RECON FEED · GRID {currentMission.coordinates}
+              <span className="text-amber-400 font-semibold flex items-center gap-2">
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>
+                  {currentMission.imageFileName 
+                    ? `MISSION RECON PHOTO // ${currentMission.imageFileName}` 
+                    : `SATELLITE SECTOR RECON FEED · GRID ${currentMission.coordinates}`}
+                </span>
               </span>
               <span>LIVE OVERWATCH</span>
             </div>
             <div className="relative aspect-[16/9] max-h-72 w-full">
               <img
-                src="/src/assets/images/tactical_operations_map_1792663265618.jpg"
+                src={displayImage}
                 alt="Tactical Map"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
@@ -175,7 +226,7 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
           <div className="bg-[#111827] border border-slate-800 rounded-xl p-5 space-y-4">
             <h4 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
               <Crosshair className="w-4 h-4 text-amber-400" />
-              <span>{isAr ? 'الأهداف المقررة' : 'Designated Objectives'}</span>
+              <span>Designated Objectives</span>
             </h4>
             <div className="space-y-2.5">
               {currentMission.objectives.map((obj, i) => (
@@ -207,7 +258,7 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
               </p>
               <p>
                 <strong className="text-slate-300">Unit: </strong>
-                Thunderbolt Unit (وحدة الصاعقة) · No. 1 Egyptian Military Gaming Community
+                Thunderbolt Unit · Special Operations Command
               </p>
             </div>
 
@@ -215,7 +266,7 @@ export const BriefingRoomView: React.FC<BriefingRoomViewProps> = ({
               onClick={() => onSelectMission(currentMission)}
               className="w-full mt-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold text-xs transition-colors cursor-pointer text-center block"
             >
-              {isAr ? 'عرض بطاقة المهمة الكاملة وتأكيد الجاهزية' : 'View Full Mission Card & Confirm'}
+              View Full Mission Card & Confirm
             </button>
           </div>
         </div>

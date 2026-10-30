@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserAccount, AccountApprovalStatus } from '../types';
-import { AVAILABLE_RANKS, RankItem } from '../data/initialData';
+import { AVAILABLE_RANKS, RankItem, isCommandRank, isStaffRank } from '../data/initialData';
 import { 
   ShieldCheck, 
   UserCheck, 
@@ -62,14 +62,14 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
     tacticalAudio.playSuccessBeep();
     const rankToAssign = selectedRankForAccount[acc.id] || acc.requestedRank || acc.rank || '[PFC | جندي أول]';
     onApproveAccount(acc.id, rankToAssign);
-    setFeedbackNotice(`تم اعتماد وتفعيل حساب المقاتل "${acc.username}" بالرتبة: ${rankToAssign}`);
+    setFeedbackNotice(`Operator "${acc.username}" commissioned successfully with rank: ${rankToAssign}`);
     setTimeout(() => setFeedbackNotice(null), 4000);
   };
 
   const handleReject = (acc: UserAccount) => {
     tacticalAudio.playRadioClick();
     onRejectAccount(acc.id);
-    setFeedbackNotice(`تم رفض طلب انضمام "${acc.username}"`);
+    setFeedbackNotice(`Application for "${acc.username}" was rejected`);
     setTimeout(() => setFeedbackNotice(null), 4000);
   };
 
@@ -77,7 +77,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
     tacticalAudio.playSuccessBeep();
     onUpdateMemberRank(memberId, newRankForEdit);
     setEditingMemberId(null);
-    setFeedbackNotice(`تم تحديث الرتبة العسكرية للمقاتل بنجاح إلى: ${newRankForEdit}`);
+    setFeedbackNotice(`Military rank updated successfully to: ${newRankForEdit}`);
     setTimeout(() => setFeedbackNotice(null), 4000);
   };
 
@@ -98,11 +98,11 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-display text-base font-bold text-stone-100">
-                  لوحة قيادة القائد · طلبات الاعتماد والرتب
+                  Commander Clearance & Roster Control
                 </h3>
               </div>
               <p className="text-[11px] text-[#f2c14e] font-mono">
-                LEADER CLEARANCE & MILITARY RANK CONTROL
+                MAJ. GEN. DRAGON · MILITARY COMMISSION DESK
               </p>
             </div>
           </div>
@@ -140,7 +140,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>طلبات الانضمام المعلقة</span>
+            <span>Pending Applications</span>
             {pendingAccounts.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black ${
                 activeTab === 'pending' ? 'bg-black text-[#f2c14e]' : 'bg-[#f2c14e] text-black'
@@ -162,7 +162,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>التحكم في رتب المقاتلين</span>
+            <span>Manage Operator Ranks</span>
             <span className="text-[10px] font-mono text-stone-400">
               ({approvedMembers.length})
             </span>
@@ -170,7 +170,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
         </div>
 
         {/* =========================================================================
-            TAB 1: PENDING ACCOUNT REQUESTS (طلبات الانضمام الجديدة)
+            TAB 1: PENDING ACCOUNT REQUESTS
            ========================================================================= */}
         {activeTab === 'pending' && (
           <div className="flex-1 overflow-y-auto space-y-3 pt-3 pr-1 custom-scrollbar">
@@ -180,10 +180,10 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                   <Check className="w-6 h-6" />
                 </div>
                 <h4 className="font-display text-sm font-bold text-stone-200">
-                  لا توجد طلبات معلقة حالياً
+                  No Pending Applications
                 </h4>
                 <p className="text-xs text-stone-400 max-w-xs mx-auto font-sans leading-relaxed">
-                  أي مقاتل أو عضو جديد ينشئ حساباً سيظهر هنا مباشرة لتحديد رتبته العسكرية والموافقة عليه قبل دخوله للمنظومة.
+                  When new operators register, their applications appear here for verification and military rank commissioning before grant of access.
                 </p>
               </div>
             ) : (
@@ -207,26 +207,40 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                               {acc.username}
                             </span>
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-mono font-bold">
-                              بانتظار موافقتك
+                              Awaiting Clearance
                             </span>
                           </div>
-                          <div className="text-[11px] text-stone-400 font-mono flex items-center gap-2 mt-0.5">
-                            <span>انضم: {acc.joinedDate}</span>
+                          <div className="text-[11px] text-stone-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className="text-stone-300 font-bold">UID: {acc.unitServiceId || 'TU-9198'}</span>
+                            {acc.steamUid && (
+                              <span className="text-stone-400">Steam: {acc.steamUid}</span>
+                            )}
+                            {acc.linkedGmail && (
+                              <span className="text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.2 rounded text-[10px]">
+                                Gmail: {acc.linkedGmail}
+                              </span>
+                            )}
+                            {acc.linkedDiscord && (
+                              <span className="text-indigo-300 bg-indigo-950/60 border border-indigo-500/30 px-1.5 py-0.2 rounded text-[10px]">
+                                Discord: {acc.linkedDiscord}
+                              </span>
+                            )}
+                            <span>· Applied: {acc.joinedDate}</span>
                           </div>
                         </div>
                       </div>
 
                       <span className="text-[10px] font-mono text-[#f2c14e] bg-[#f2c14e]/10 px-2 py-0.5 rounded border border-[#f2c14e]/20 shrink-0">
-                        طلب جديد
+                        NEW APPLICANT
                       </span>
                     </div>
 
-                    {/* Leader Rank Assignment Selector (Leader controls rank!) */}
+                    {/* Leader Rank Assignment Selector */}
                     <div className="p-2.5 rounded-xl bg-black/60 border border-stone-800 space-y-1.5">
                       <label className="text-[11px] font-mono font-bold text-[#f2c14e] flex items-center justify-between">
                         <span className="flex items-center gap-1">
                           <Award className="w-3.5 h-3.5" />
-                          <span>الرتبة العسكرية التي يعينها القائد له:</span>
+                          <span>Assign Military Rank:</span>
                         </span>
                         <span className="text-emerald-400 font-mono font-bold">
                           {chosenRank}
@@ -234,8 +248,8 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                       </label>
 
                       {/* Rank Chips Picker */}
-                      <div className="grid grid-cols-3 gap-1.5 max-h-32 overflow-y-auto pr-1 custom-scrollbar pt-1">
-                        {AVAILABLE_RANKS.slice(0, 8).map((rk) => {
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar pt-1">
+                        {AVAILABLE_RANKS.map((rk) => {
                           const isPicked = chosenRank === rk.formatted;
                           return (
                             <button
@@ -245,14 +259,26 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                                 tacticalAudio.playRadioClick();
                                 handleRankSelect(acc.id, rk.formatted);
                               }}
-                              className={`p-1.5 rounded-lg border text-center transition cursor-pointer text-[10px] font-mono truncate ${
+                              className={`p-1.5 rounded-lg border text-left transition cursor-pointer text-[10px] font-mono flex items-center justify-between ${
                                 isPicked
                                   ? 'bg-[#f2c14e] text-black font-bold border-[#f2c14e]'
                                   : 'bg-stone-900 border-stone-800 text-stone-300 hover:border-stone-700'
                               }`}
                               title={rk.nameEn}
                             >
-                              {rk.formatted}
+                              <span className="truncate mr-1">{rk.formatted}</span>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                {rk.isCommand && (
+                                  <span className={`text-[8px] px-1 py-0.2 rounded font-bold ${isPicked ? 'bg-black/30 text-black' : 'text-[#f2c14e]'}`}>
+                                    Cmd
+                                  </span>
+                                )}
+                                {rk.isStaffOfficer && (
+                                  <span className={`text-[8px] px-1 py-0.2 rounded font-bold ${isPicked ? 'bg-black/30 text-black' : 'text-emerald-400'}`}>
+                                    أ.ح
+                                  </span>
+                                )}
+                              </div>
                             </button>
                           );
                         })}
@@ -266,7 +292,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                         className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950 active:scale-98"
                       >
                         <UserCheck className="w-4 h-4" />
-                        <span>قبول وتعيين الرتبة</span>
+                        <span>Commission Rank & Approve</span>
                       </button>
 
                       <button
@@ -274,7 +300,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                         className="py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-rose-950 text-stone-400 hover:text-rose-300 border border-stone-800 hover:border-rose-800 font-mono text-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                       >
                         <UserX className="w-4 h-4" />
-                        <span>رفض الطلب</span>
+                        <span>Reject Application</span>
                       </button>
                     </div>
                   </div>
@@ -285,17 +311,17 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
         )}
 
         {/* =========================================================================
-            TAB 2: MEMBER RANK CONTROL (تعديل رتب المقاتلين وترقيتهم)
+            TAB 2: MEMBER RANK CONTROL
            ========================================================================= */}
         {activeTab === 'roster' && (
           <div className="flex-1 overflow-y-auto space-y-3 pt-3 pr-1 custom-scrollbar">
             <div className="p-3 rounded-xl bg-[#171e19] border border-emerald-500/30 text-xs text-stone-300 space-y-1">
               <div className="flex items-center gap-1.5 text-emerald-400 font-mono font-bold text-[11px]">
                 <Shield className="w-3.5 h-3.5" />
-                <span>صلاحية حصرية للقائد (Leader Only Rank Control)</span>
+                <span>Leader-Authoritative Rank Command</span>
               </div>
               <p className="text-[11px] text-stone-400 font-sans leading-relaxed">
-                لا يمكن لأي عضو أو مقاتل تعديل رتبته بنفسه. كقائد، يمكنك ترقية وتعديل رتبة أي مقاتل في أي وقت من هنا.
+                Operators cannot edit their ranks. As Commander, you can promote or reassign the military rank of any unit member at any time.
               </p>
             </div>
 
@@ -304,17 +330,17 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
               <div className="p-3.5 rounded-2xl bg-black/80 border-2 border-[#f2c14e] space-y-3 animate-in zoom-in-95">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-[#f2c14e]">
-                    اختر الرتبة الجديدة للمقاتل:
+                    Select New Rank for Operator:
                   </span>
                   <button
                     onClick={() => setEditingMemberId(null)}
                     className="text-stone-400 hover:text-white text-xs cursor-pointer"
                   >
-                    إلغاء ✕
+                    Cancel ✕
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                   {AVAILABLE_RANKS.map((rk) => (
                     <button
                       key={rk.id}
@@ -329,17 +355,35 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                           : 'bg-stone-900 border-stone-800 text-stone-300 hover:border-stone-700'
                       }`}
                     >
-                      <span>{rk.formatted}</span>
-                      <span className="text-[10px]">{rk.insignia}</span>
+                      <div className="truncate mr-1">
+                        <span className="block truncate font-bold">{rk.formatted}</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {rk.isCommand && (
+                            <span className={`text-[8px] px-1 py-0.2 rounded font-bold ${
+                              newRankForEdit === rk.formatted ? 'bg-black/30 text-black' : 'text-[#f2c14e]'
+                            }`}>
+                              Command
+                            </span>
+                          )}
+                          {rk.isStaffOfficer && (
+                            <span className={`text-[8px] px-1 py-0.2 rounded font-bold ${
+                              newRankForEdit === rk.formatted ? 'bg-black/30 text-black' : 'text-emerald-400'
+                            }`}>
+                              أ.ح
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[10px] shrink-0">{rk.insignia}</span>
                     </button>
                   ))}
                 </div>
 
                 <button
                   onClick={() => handleSaveRankChange(editingMemberId)}
-                  className="w-full py-2.5 rounded-xl bg-[#f2c14e] text-black font-display font-bold text-xs uppercase tracking-wider transition cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-[#f2c14e] text-black font-display font-bold text-xs uppercase tracking-wider transition cursor-pointer shadow-md shadow-[#f2c14e]/20"
                 >
-                  اعتماد الترقية وتثبيت الرتبة ({newRankForEdit})
+                  Confirm Promotion & Commission ({newRankForEdit})
                 </button>
               </div>
             )}
@@ -347,7 +391,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
             {/* Approved Members List */}
             <div className="space-y-2">
               {approvedMembers.map((acc) => {
-                const isLeader = acc.role === 'instructor';
+                const isCommand = isCommandRank(acc.rank);
 
                 return (
                   <div
@@ -355,18 +399,26 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                     className="p-3 rounded-xl bg-black/50 border border-stone-800 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
-                      <span className="font-mono text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/30 px-1.5 py-0.5 rounded shrink-0">
-                        {acc.rank}
+                      <span className="font-mono text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/30 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1">
+                        <span>{acc.rank}</span>
+                        {isStaffRank(acc.rank) && (
+                          <span className="text-[8px] text-emerald-400 bg-emerald-950/60 px-1 rounded">
+                            أ.ح
+                          </span>
+                        )}
                       </span>
                       <span className="font-sans font-bold text-stone-100 truncate">
                         {acc.username}
                       </span>
+                      <span className="font-mono text-[10px] text-stone-400 bg-stone-900 px-1.5 py-0.5 rounded border border-stone-800 shrink-0">
+                        {acc.unitServiceId || 'TU-9198'}
+                      </span>
                       <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold shrink-0 border ${
-                        isLeader 
+                        isCommand 
                           ? 'bg-[#f2c14e]/20 text-[#f2c14e] border-[#f2c14e]/40' 
                           : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                       }`}>
-                        {isLeader ? 'Leader قائد' : 'Member عضو'}
+                        {isCommand ? 'Command' : 'Operator'}
                       </span>
                     </div>
 
@@ -378,7 +430,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                       }}
                       className="px-2.5 py-1 text-[11px] font-mono font-bold text-[#f2c14e] hover:text-black bg-[#f2c14e]/10 hover:bg-[#f2c14e] border border-[#f2c14e]/30 rounded-lg transition cursor-pointer shrink-0"
                     >
-                      تعديل الرتبة ✏️
+                      Promote Rank ✏️
                     </button>
                   </div>
                 );
@@ -390,7 +442,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
         {/* Modal Footer */}
         <div className="pt-3 border-t border-stone-800 text-center shrink-0">
           <p className="text-[10px] font-mono text-stone-500">
-            الصلاحيات العسكرية التكتيكية: التحكم في الرتب والاعتماد حصري للواء أ.ح Dragon وقادة الوحدة
+            Military Operational Authority: Rank assignment and recruitment approval reserved for Maj. Gen. Dragon
           </p>
         </div>
 

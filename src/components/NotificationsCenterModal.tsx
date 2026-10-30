@@ -34,15 +34,13 @@ export const NotificationsCenterModal: React.FC<NotificationsCenterModalProps> =
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">
             <Radio className="w-4 h-4 text-amber-500 animate-pulse" />
-            <span>REAL-TIME DISPATCH BROADCAST FEED · بث الإشعارات المباشر</span>
+            <span>REAL-TIME DISPATCH BROADCAST FEED</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            {isAr ? 'مركز إشعارات وبث مهام الصاعقة' : 'Thunderbolt Tactical Broadcast Center'}
+            Thunderbolt Tactical Broadcast Center
           </h2>
           <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
-            {isAr 
-              ? 'كل مهمة جديدة يتم نشرها تصدر إشعاراً صوتياً ورسالة تنبيه تصل لجميع مقاتلي الوحدة مع تفاصيل الإيجاز.' 
-              : 'Every new mission logged dispatches an audible alert and push notification to all squad operators simultaneously.'}
+            Every new mission logged dispatches an audible alert and push notification to all squad operators simultaneously.
           </p>
         </div>
 
@@ -52,7 +50,7 @@ export const NotificationsCenterModal: React.FC<NotificationsCenterModalProps> =
             className="px-3.5 py-2 text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Bell className="w-3.5 h-3.5 text-amber-400" />
-            <span>{isAr ? 'تفعيل إشعارات المتصفح' : 'Enable Push Alerts'}</span>
+            <span>Enable Push Alerts</span>
           </button>
 
           <button
@@ -63,7 +61,7 @@ export const NotificationsCenterModal: React.FC<NotificationsCenterModalProps> =
             className="px-4 py-2 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
           >
             <Radio className="w-3.5 h-3.5" />
-            <span>{isAr ? 'تجربة إشعار المهمة فوراً' : 'Test Dispatch Siren'}</span>
+            <span>Test Dispatch Siren</span>
           </button>
         </div>
       </div>
@@ -115,7 +113,7 @@ export const NotificationsCenterModal: React.FC<NotificationsCenterModalProps> =
                   }}
                   className="px-3.5 py-1.5 text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
                 >
-                  {isAr ? 'فتح إيجاز المهمة' : 'Open Briefing'}
+                  Open Briefing
                 </button>
               </div>
             </article>
