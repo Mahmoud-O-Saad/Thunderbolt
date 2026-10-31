@@ -275,8 +275,8 @@ export async function sendBrowserNotification(title: string, options?: Notificat
     }
     if (permission === 'granted') {
       new Notification(title, {
-        icon: '/assets/aistudio/3.Logo_9d28ba9d.png',
-        badge: '/assets/aistudio/3.Logo_9d28ba9d.png',
+        icon: '/assets/OP/3.Logo_9d28ba9d.png',
+        badge: '/assets/OP/3.Logo_9d28ba9d.png',
         ...options,
       });
       return true;

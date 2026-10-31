@@ -8,6 +8,8 @@ This implementation plan outlines the architecture and user experience enhanceme
 
 > [!NOTE]
 > **Status: Completed & Verified**
+> - **Sa'ka Academy Qualification System (`SakaAcademyModal.tsx` & `qualificationsData.ts`)**: Built a full in-game ARMA III military qualification system matching the user's screenshots with 31 qualification modules (01.1 Basic Combat through 07.1 Irregular Warfare & COIN). Features individual operator training passports, readiness percentages, critical tasks, bilingual trainee manuals (EN & AR), instructor evaluation guides, and commander certification controls. Accessible from the Account tab, Command room, member rosters, and top identity ribbon.
+> - **Component Renamed (`ThunderboltApp.tsx`)**: Renamed `src/components/WhackaThunderboltApp.tsx` to `src/components/ThunderboltApp.tsx` and updated its imports and usage in `src/App.tsx`.
 > - **Login Gateway Page (`LoginPage.tsx`)**: Created a dedicated tactical Egyptian Thunderbolt military login page that displays before entering the app. Features operator quick-select chips (Dragon, Tariq, etc.), username/callsign sign in, one-click Gmail and Discord authentication, and a direct recruit "Sign Up / طلب انضمام" CTA.
 > - **Session & Logout Control**: Integrated `isLoggedIn` state in `App.tsx` persisted in `localStorage`. Added top-bar and Account-tab "Log Out / تسجيل خروج" buttons to return to the gateway at any time.
 > - **Standardized "أ.ح" Ranks**: All staff officer ranks across the app now strictly use the military abbreviation **"أ.ح"** (e.g. `[MG | لواء أ.ح]`, `[COL | عقيد أ.ح]`, `[BGD | عميد أ.ح]`).

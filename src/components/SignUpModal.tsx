@@ -166,7 +166,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
         {/* TACTICAL COVER IMAGE BANNER */}
         <div className="relative h-32 -mx-6 -mt-6 mb-4 overflow-hidden rounded-t-2xl border-b border-[#f2c14e]/30 bg-black">
           <img
-            src="/assets/aistudio/1.Cover_b397aaf7.png"
+            src="/assets/OP/1.Cover_b397aaf7.png"
             alt="Thunderbolt Cover"
             className="w-full h-full object-cover object-top filter brightness-90 hover:scale-105 transition-transform duration-500"
           />
@@ -177,7 +177,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full border border-[#f2c14e]/60 p-0.5 bg-black/90 shadow-lg shadow-black/80 shrink-0">
                 <img
-                  src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                  src="/assets/OP/3.Logo_9d28ba9d.png"
                   alt="Unit Logo"
                   className="w-full h-full object-cover rounded-full"
                 />

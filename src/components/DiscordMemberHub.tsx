@@ -70,7 +70,7 @@ export const DiscordMemberHub: React.FC<DiscordMemberHubProps> = ({
         {/* Banner Image */}
         <div className="relative h-40 w-full overflow-hidden">
           <img
-            src="/assets/aistudio/1.Cover_b397aaf7.png"
+            src="/assets/OP/1.Cover_b397aaf7.png"
             alt="Thunderbolt Operations"
             className="w-full h-full object-cover object-top filter brightness-80"
           />
@@ -95,7 +95,7 @@ export const DiscordMemberHub: React.FC<DiscordMemberHubProps> = ({
           <div className="absolute bottom-2 left-4 flex items-center gap-2">
             <div className="w-10 h-10 rounded-full border-2 border-[#5865F2] p-0.5 bg-black/90 shadow-lg">
               <img
-                src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                src="/assets/OP/3.Logo_9d28ba9d.png"
                 alt="Emblem"
                 className="w-full h-full object-cover rounded-full"
               />

@@ -26,7 +26,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onEnter, onDirectToM
       {/* Outer ambient blur background for desktop */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-30 blur-md scale-110 pointer-events-none"
-        style={{ backgroundImage: `url('/assets/aistudio/1.Cover_b397aaf7.png')` }}
+        style={{ backgroundImage: `url('/assets/OP/1.Cover_b397aaf7.png')` }}
       />
       <div className="absolute inset-0 bg-black/50 pointer-events-none" />
 
@@ -36,7 +36,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onEnter, onDirectToM
         {/* Full Cover Image as the primary background */}
         <div 
           className="absolute inset-0 bg-cover bg-top bg-no-repeat pointer-events-none"
-          style={{ backgroundImage: `url('/assets/aistudio/1.Cover_b397aaf7.png')` }}
+          style={{ backgroundImage: `url('/assets/OP/1.Cover_b397aaf7.png')` }}
         />
         
         {/* Tactical dark gradient overlay to ensure perfect contrast and gold prominence */}
@@ -66,7 +66,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onEnter, onDirectToM
             {/* The Eagle Emblem */}
             <div className="relative w-32 h-32 rounded-full p-1 bg-gradient-to-b from-[#f2c14e]/60 via-[#101412] to-black border-2 border-[#f2c14e]/70 shadow-2xl shadow-[#f2c14e]/30 flex items-center justify-center overflow-hidden">
               <img
-                src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                src="/assets/OP/3.Logo_9d28ba9d.png"
                 alt="Thunderbolt Emblem"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover rounded-full"

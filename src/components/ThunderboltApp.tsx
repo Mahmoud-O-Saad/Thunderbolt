@@ -39,16 +39,19 @@ import {
   Copy,
   ChevronsUpDown,
   RotateCw,
-  LogOut
+  LogOut,
+  BookOpen
 } from 'lucide-react';
 import { tacticalAudio, speakBriefing, stopBriefing, stopAllAudio, playAudioUrl, sendBrowserNotification } from '../utils/audio';
 import { SignUpModal } from './SignUpModal';
 import { AccountSwitcherModal } from './AccountSwitcherModal';
 import { LeaderApprovalModal } from './LeaderApprovalModal';
 import { DiscordMemberHub } from './DiscordMemberHub';
+import { SakaAcademyModal } from './SakaAcademyModal';
+import { calculateMemberQualifications, QualificationStatus } from '../data/qualificationsData';
 import { AVAILABLE_RANKS, isCommandRank, isStaffRank, getRoleTitle } from '../data/initialData';
 
-interface WhackaThunderboltAppProps {
+interface ThunderboltAppProps {
   missions: Mission[];
   members: SquadMember[];
   notifications: BroadcastNotification[];
@@ -73,9 +76,12 @@ interface WhackaThunderboltAppProps {
   onRejectAccount?: (accountId: string) => void;
   onUpdateMemberRank?: (accountId: string, newRank: string) => void;
   onLogout?: () => void;
+  onUpdateMemberQualifications?: (memberId: string, qualifications: Record<string, QualificationStatus>) => void;
 }
 
-export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
+export type WhackaThunderboltAppProps = ThunderboltAppProps;
+
+export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
   missions,
   members,
   notifications,
@@ -100,6 +106,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
   onRejectAccount,
   onUpdateMemberRank,
   onLogout,
+  onUpdateMemberQualifications,
 }) => {
   // Navigation tabs: 'missions' | 'archive' | 'command' | 'account'
   const [activeTab, setActiveTab] = useState<'missions' | 'archive' | 'command' | 'account'>('missions');
@@ -150,6 +157,29 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
   const [modalAudioPlaying, setModalAudioPlaying] = useState<boolean>(false);
   const [accountRankFilter, setAccountRankFilter] = useState<'all' | 'command' | 'staff'>('all');
   const stopAudioRef = React.useRef<(() => void) | null>(null);
+
+  // Sa'ka Academy Modal state
+  const [showAcademyModal, setShowAcademyModal] = useState<boolean>(false);
+  const [academySelectedMemberId, setAcademySelectedMemberId] = useState<string | undefined>(undefined);
+
+  const handleOpenAcademy = (memberId?: string) => {
+    tacticalAudio.playRadioClick();
+    setAcademySelectedMemberId(memberId || currentUser.id);
+    setShowAcademyModal(true);
+  };
+
+  const handleUpdateQualifications = (memberId: string, quals: Record<string, QualificationStatus>) => {
+    if (onUpdateMemberQualifications) {
+      onUpdateMemberQualifications(memberId, quals);
+    } else {
+      const targetAcc = accounts.find(a => a.id === memberId);
+      if (targetAcc) {
+        onUpdateUserAccount({ ...targetAcc, qualifications: quals });
+      }
+    }
+  };
+
+  const userAcademyStats = calculateMemberQualifications(currentUser.qualifications);
 
   const handleSignUpComplete = (newAccount: UserAccount) => {
     if (onAddAccount) {
@@ -266,7 +296,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
       {/* Outer ambient desktop cover background */}
       <div 
         className="fixed inset-0 bg-cover bg-center opacity-25 blur-md scale-105 pointer-events-none"
-        style={{ backgroundImage: `url('/assets/aistudio/1.Cover_b397aaf7.png')` }}
+        style={{ backgroundImage: `url('/assets/OP/1.Cover_b397aaf7.png')` }}
       />
       <div className="fixed inset-0 bg-black/60 pointer-events-none" />
 
@@ -276,7 +306,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
         {/* Cover image embedded inside phone container */}
         <div 
           className="absolute inset-0 bg-cover bg-top bg-no-repeat pointer-events-none opacity-20"
-          style={{ backgroundImage: `url('/assets/aistudio/1.Cover_b397aaf7.png')` }}
+          style={{ backgroundImage: `url('/assets/OP/1.Cover_b397aaf7.png')` }}
         />
         {/* Tactical dark gradient overlay for optimal legibility and contrast */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0d0b]/92 via-[#0a0d0b]/90 to-[#0a0d0b]/96 pointer-events-none" />
@@ -295,7 +325,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
               className="relative w-9 h-9 rounded-full overflow-hidden border border-[#f2c14e]/40 shadow-inner p-0.5 bg-black cursor-pointer hover:border-[#f2c14e] transition-colors"
             >
               <img
-                src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                src="/assets/OP/3.Logo_9d28ba9d.png"
                 alt="Logo"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover rounded-full"
@@ -389,6 +419,15 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
             >
               <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Sign Up / انضمام</span>
+            </button>
+
+            <button
+              onClick={() => handleOpenAcademy()}
+              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#f2c14e] bg-[#f2c14e]/10 hover:bg-[#f2c14e]/20 px-2 py-0.5 rounded-lg border border-[#f2c14e]/30 transition cursor-pointer shrink-0 active:scale-95"
+              title="Sa'ka Academy Qualification Record"
+            >
+              <Award className="w-3 h-3 text-[#f2c14e]" />
+              <span>Academy</span>
             </button>
 
             <button
@@ -807,7 +846,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
                     <div className="flex justify-center mb-1">
                       <div className="relative w-16 h-16 rounded-full p-0.5 border border-[#f2c14e]/30 bg-black/60 shadow-xl shadow-[#f2c14e]/15 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <img
-                          src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                          src="/assets/OP/3.Logo_9d28ba9d.png"
                           alt="Emblem"
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-cover rounded-full"
@@ -871,7 +910,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
                   <div className="flex justify-center">
                     <div className="w-16 h-16 rounded-full p-0.5 border border-[#f2c14e]/30 bg-black/60 shadow-xl shadow-[#f2c14e]/10 flex items-center justify-center">
                       <img
-                        src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                        src="/assets/OP/3.Logo_9d28ba9d.png"
                         alt="Emblem"
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover rounded-full"
@@ -1210,6 +1249,45 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
                     </div>
                   </div>
 
+                  {/* Card: Thunderbolt Sa'ka Academy Qualifications System */}
+                  <div 
+                    onClick={() => handleOpenAcademy()}
+                    className="rounded-3xl p-5 tb-card border border-[#f2c14e]/30 hover:border-[#f2c14e] transition cursor-pointer space-y-2.5 group shadow-xl bg-gradient-to-r from-[#171c17] via-[#101512] to-black"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-[#f2c14e]/10 border border-[#f2c14e]/40 flex items-center justify-center text-[#f2c14e] group-hover:scale-105 transition-transform shrink-0 shadow-inner">
+                          <Award className="w-6 h-6 text-[#f2c14e]" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display text-sm sm:text-base font-bold text-stone-100">
+                              THUNDERBOLT / SA'KA ACADEMY
+                            </h3>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-[#f2c14e] text-black">
+                              OFFICIAL
+                            </span>
+                          </div>
+                          <p className="text-xs text-stone-400 mt-0.5">
+                            Qualifications, training passports & operator combat certifications
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-mono font-bold text-[#f2c14e] bg-black/60 border border-[#f2c14e]/40 px-2.5 py-1 rounded-full uppercase shrink-0">
+                        31 Modules
+                      </span>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-stone-400 border-t border-stone-800/80">
+                      <span className="text-emerald-400">Server-Verified Records</span>
+                      <span className="text-[#f2c14e] group-hover:underline flex items-center gap-1">
+                        <span>Open Academy Structure</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Card 2: New Mission (Matching Screenshot 2 bottom card) */}
                   <div 
                     onClick={() => {
@@ -1496,6 +1574,61 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
                 )}
               </div>
 
+              {/* Card: Sa'ka Academy Training Passport for Current User */}
+              <div className="rounded-3xl p-5 bg-[#101412] border border-[#f2c14e]/25 space-y-3 shadow-lg">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-[#f2c14e]/10 border border-[#f2c14e]/40 flex items-center justify-center text-[#f2c14e] shrink-0 mt-0.5">
+                      <Award className="w-6 h-6 text-[#f2c14e]" />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display text-sm font-bold text-stone-100 uppercase">
+                          Sa'ka Academy Passport
+                        </h4>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-[#f2c14e] text-black">
+                          OFFICIAL
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-300 mt-0.5 font-arabic">
+                        سجل التأهيل القتالي والأكاديمية العسكرية
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-500/40 shrink-0">
+                    {userAcademyStats.completed} / {userAcademyStats.total} Certified
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-stone-400">
+                    <span>Combat Readiness: <strong className="text-emerald-400">{userAcademyStats.percent}%</strong></span>
+                    <span>{userAcademyStats.available} Available Modules</span>
+                  </div>
+                  <div className="w-full h-2.5 rounded-full bg-black border border-stone-800 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-amber-500 via-[#f2c14e] to-emerald-400 transition-all duration-500"
+                      style={{ width: `${Math.max(userAcademyStats.percent, 5)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-stone-400 leading-relaxed font-sans">
+                  Server-verified qualification records for <strong className="text-stone-200">{currentUser.username}</strong> ({currentUser.unitServiceId || 'TU-9198'}). Review critical tasks and trainee manuals.
+                </p>
+
+                <button
+                  onClick={() => handleOpenAcademy(currentUser.id)}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#f2c14e] hover:from-[#f2c14e] hover:to-amber-400 text-black font-display font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#f2c14e]/20"
+                >
+                  <BookOpen className="w-4 h-4 fill-black" />
+                  <span>Open Sa'ka Academy (أكاديمية الصاعقة)</span>
+                </button>
+              </div>
+
               {/* Card 2: Mission alerts (Matching Screenshot 23 exactly) */}
               <div className="rounded-3xl p-5 bg-[#101412] border border-[#f2c14e]/15 space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -1582,6 +1715,14 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleOpenAcademy(acc.id)}
+                            className="p-1 rounded text-stone-400 hover:text-[#f2c14e] bg-stone-900 border border-stone-800 hover:border-[#f2c14e]/40 transition cursor-pointer"
+                            title="Sa'ka Academy Qualification Record"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                          </button>
+
                           {isActive ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
                               <Check className="w-3 h-3 stroke-[3]" />
@@ -1644,7 +1785,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
                   className="relative h-28 w-full overflow-hidden border-b border-[#f2c14e]/20 cursor-pointer group"
                 >
                   <img
-                    src="/assets/aistudio/1.Cover_b397aaf7.png"
+                    src="/assets/OP/1.Cover_b397aaf7.png"
                     alt="Thunderbolt Unit Cover"
                     className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                   />
@@ -2026,7 +2167,7 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
             >
               <div className="relative aspect-[2/3] w-full overflow-hidden bg-black">
                 <img
-                  src="/assets/aistudio/1.Cover_b397aaf7.png"
+                  src="/assets/OP/1.Cover_b397aaf7.png"
                   alt="Thunderbolt Unit Official Cover"
                   className="w-full h-full object-contain"
                 />
@@ -2104,7 +2245,24 @@ export const WhackaThunderboltApp: React.FC<WhackaThunderboltAppProps> = ({
           preselectedAccountId={preselectedEditMemberId}
         />
 
+        {/* MODAL: THUNDERBOLT SA'KA ACADEMY QUALIFICATIONS & PASSPORTS */}
+        {showAcademyModal && (
+          <SakaAcademyModal
+            isOpen={showAcademyModal}
+            onClose={() => setShowAcademyModal(false)}
+            currentUser={currentUser}
+            accounts={accounts}
+            members={members}
+            onUpdateMemberQualifications={handleUpdateQualifications}
+            userRole={userRole}
+            initialSelectedMemberId={academySelectedMemberId}
+            lang={lang}
+          />
+        )}
+
       </div>
     </div>
   );
 };
+
+export const WhackaThunderboltApp = ThunderboltApp;

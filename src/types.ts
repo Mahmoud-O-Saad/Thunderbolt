@@ -8,6 +8,8 @@ export type UserRole = 'instructor' | 'member' | 'client';
 
 export type AccountApprovalStatus = 'approved' | 'pending' | 'rejected';
 
+export type QualificationStatus = 'locked' | 'available' | 'completed';
+
 export interface UserAccount {
   id: string;
   username: string; // Single name, e.g. "Mahmoud"
@@ -23,6 +25,7 @@ export interface UserAccount {
   linkedDiscord?: string;
   joinedDate: string;
   isRegistered: boolean;
+  qualifications?: Record<string, QualificationStatus>;
 }
 
 export interface SquadMember {
@@ -37,6 +40,7 @@ export interface SquadMember {
   deviceType: 'Tactical Radio' | 'Satellite Terminal' | 'Mobile Pager' | 'Command HUD';
   steamUid?: string;
   unitServiceId?: string; // e.g. "TU-9198"
+  qualifications?: Record<string, QualificationStatus>;
 }
 
 export interface TacticalObjective {

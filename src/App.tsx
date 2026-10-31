@@ -5,8 +5,8 @@ import {
   INITIAL_MISSIONS, 
   INITIAL_NOTIFICATIONS 
 } from './data/initialData';
-import { Mission, SquadMember, BroadcastNotification, UserRole, UserAccount, MissionAttendanceStatus } from './types';
-import { WhackaThunderboltApp } from './components/WhackaThunderboltApp';
+import { Mission, SquadMember, BroadcastNotification, UserRole, UserAccount, MissionAttendanceStatus, QualificationStatus } from './types';
+import { ThunderboltApp } from './components/ThunderboltApp';
 import { SplashScreen } from './components/SplashScreen';
 import { LoginPage } from './components/LoginPage';
 import { SignUpModal } from './components/SignUpModal';
@@ -593,6 +593,21 @@ export default function App() {
     handleLoginSuccess(newAccount);
   };
 
+  // Update member qualifications (Sa'ka Academy Certification)
+  const handleUpdateMemberQualifications = (memberId: string, qualifications: Record<string, QualificationStatus>) => {
+    setAccounts(prev =>
+      prev.map(acc => (acc.id === memberId ? { ...acc, qualifications } : acc))
+    );
+    setMembers(prev =>
+      prev.map(m => (m.id === memberId ? { ...m, qualifications } : m))
+    );
+    if (currentUser.id === memberId) {
+      const updatedUser = { ...currentUser, qualifications };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('thunderbolt_user_account', JSON.stringify(updatedUser));
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <>
@@ -639,8 +654,8 @@ export default function App() {
         />
       )}
 
-      {/* Main Thunderbolt Unit Application matching whacka layout */}
-      <WhackaThunderboltApp
+      {/* Main Thunderbolt Unit Application */}
+      <ThunderboltApp
         missions={missions}
         members={members}
         notifications={notifications}
@@ -665,6 +680,7 @@ export default function App() {
         onRejectAccount={handleRejectAccount}
         onUpdateMemberRank={handleUpdateMemberRank}
         onLogout={handleLogout}
+        onUpdateMemberQualifications={handleUpdateMemberQualifications}
       />
     </>
   );

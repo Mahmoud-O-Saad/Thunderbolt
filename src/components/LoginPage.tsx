@@ -203,7 +203,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       {/* Outer ambient blur background for desktop */}
       <div
         className="fixed inset-0 bg-cover bg-center opacity-25 blur-md scale-110 pointer-events-none"
-        style={{ backgroundImage: `url('/assets/aistudio/1.Cover_b397aaf7.png')` }}
+        style={{ backgroundImage: `url('/assets/OP/1.Cover_b397aaf7.png')` }}
       />
       <div className="fixed inset-0 bg-black/60 pointer-events-none" />
 
@@ -212,7 +212,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         {/* Cover image subtle background inside card */}
         <div
           className="absolute inset-0 bg-cover bg-top opacity-20 pointer-events-none"
-          style={{ backgroundImage: `url('/assets/aistudio/1.Cover_b397aaf7.png')` }}
+          style={{ backgroundImage: `url('/assets/OP/1.Cover_b397aaf7.png')` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#090d0b]/90 via-[#0a0f0c]/85 to-[#060807]/98 pointer-events-none" />
         <div className="absolute inset-0 tb-grid opacity-20 pointer-events-none" />
@@ -253,7 +253,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <div className="absolute -inset-4 rounded-full border border-[#f2c14e]/20 animate-pulse pointer-events-none" />
               <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-b from-[#f2c14e]/70 via-[#121915] to-black border-2 border-[#f2c14e]/80 shadow-xl shadow-[#f2c14e]/20 flex items-center justify-center overflow-hidden">
                 <img
-                  src="/assets/aistudio/3.Logo_9d28ba9d.png"
+                  src="/assets/OP/3.Logo_9d28ba9d.png"
                   alt="Thunderbolt Unit Logo"
                   className="w-full h-full object-cover rounded-full"
                 />
