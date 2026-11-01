@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Tactical operator account with military approval status",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "rank": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "role": {
+          "type": "string",
+          "enum": ["instructor", "member"]
+        },
+        "approvalStatus": {
+          "type": "string",
+          "enum": ["approved", "pending", "rejected"]
+        },
+        "requestedRank": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "unitServiceId": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "steamUid": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "authProvider": {
+          "type": "string",
+          "enum": ["google", "manual"]
+        },
+        "joinedDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "isRegistered": {
+          "type": "boolean"
+        },
+        "approvedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "approvedAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "username", "email", "role", "approvalStatus"]
+    },
+    "TrainingBooking": {
+      "title": "TrainingBooking",
+      "description": "Qualification training appointment booking",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "qualificationId": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "qualificationTitle": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "candidateId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "candidateName": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "candidateEmail": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "candidateRank": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "year": {
+          "type": "number"
+        },
+        "month": {
+          "type": "number"
+        },
+        "day": {
+          "type": "number"
+        },
+        "timeSlot": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "slotLabel": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "companionEmail": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "companionName": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "rejected"]
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "approvedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "approvedAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "qualificationId", "candidateId", "year", "month", "day", "timeSlot", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserAccount",
+      "description": "User accounts with role-based access control and instructor clearance gating"
+    },
+    "/trainingBookings/{bookingId}": {
+      "schema": "TrainingBooking",
+      "description": "Qualification training appointments with companion invitations and instructor approval"
+    }
+  }
+}

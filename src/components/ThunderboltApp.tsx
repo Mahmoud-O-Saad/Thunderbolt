@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Mission, SquadMember, BroadcastNotification, UserRole, UserAccount, MissionAttendanceStatus } from '../types';
+import { 
+  Mission, 
+  SquadMember, 
+  BroadcastNotification, 
+  UserRole, 
+  UserAccount, 
+  MissionAttendanceStatus, 
+  QualificationEntry,
+  TrainingBooking
+} from '../types';
 import { 
   Radio, 
   Archive as ArchiveIcon, 
@@ -40,7 +49,9 @@ import {
   ChevronsUpDown,
   RotateCw,
   LogOut,
-  BookOpen
+  BookOpen,
+  Search,
+  X
 } from 'lucide-react';
 import { tacticalAudio, speakBriefing, stopBriefing, stopAllAudio, playAudioUrl, sendBrowserNotification } from '../utils/audio';
 import { SignUpModal } from './SignUpModal';
@@ -76,7 +87,11 @@ interface ThunderboltAppProps {
   onRejectAccount?: (accountId: string) => void;
   onUpdateMemberRank?: (accountId: string, newRank: string) => void;
   onLogout?: () => void;
-  onUpdateMemberQualifications?: (memberId: string, qualifications: Record<string, QualificationStatus>) => void;
+  onUpdateMemberQualifications?: (memberId: string, qualifications: Record<string, QualificationEntry>) => void;
+  trainingBookings?: TrainingBooking[];
+  onSaveTrainingBooking?: (booking: TrainingBooking) => void;
+  onApproveTrainingBooking?: (bookingId: string) => void;
+  onRejectTrainingBooking?: (bookingId: string) => void;
 }
 
 export type WhackaThunderboltAppProps = ThunderboltAppProps;
@@ -107,12 +122,20 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
   onUpdateMemberRank,
   onLogout,
   onUpdateMemberQualifications,
+  trainingBookings = [],
+  onSaveTrainingBooking,
+  onApproveTrainingBooking,
+  onRejectTrainingBooking,
 }) => {
   // Navigation tabs: 'missions' | 'archive' | 'command' | 'account'
   const [activeTab, setActiveTab] = useState<'missions' | 'archive' | 'command' | 'account'>('missions');
   const [viewingMissionId, setViewingMissionId] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [showPostModal, setShowPostModal] = useState<boolean>(false);
+  const [assignedOperatorSearch, setAssignedOperatorSearch] = useState<string>('');
+  
+  // Pending bookings count
+  const pendingBookingsCount = trainingBookings.filter(b => b.status === 'pending').length;
   
   // Command Room States (Screenshot 2_a1e58b5b.PNG)
   const [selfSignUpEnabled, setSelfSignUpEnabled] = useState<boolean>(true);
@@ -168,7 +191,7 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
     setShowAcademyModal(true);
   };
 
-  const handleUpdateQualifications = (memberId: string, quals: Record<string, QualificationStatus>) => {
+  const handleUpdateQualifications = (memberId: string, quals: Record<string, QualificationEntry>) => {
     if (onUpdateMemberQualifications) {
       onUpdateMemberQualifications(memberId, quals);
     } else {
@@ -200,6 +223,16 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
 
   const featuredMission = missions.find(m => m.date === '2026-10-22') || missions[0];
   const activeMission = viewingMissionId ? missions.find(m => m.id === viewingMissionId) : featuredMission;
+
+  const filteredAssignedOperators = members.filter(member => {
+    const q = assignedOperatorSearch.trim().toLowerCase();
+    if (!q) return true;
+    const nameMatch = member.name.toLowerCase().includes(q);
+    const rankMatch = (member.rank || '').toLowerCase().includes(q);
+    const roleMatch = (member.role || '').toLowerCase().includes(q);
+    const serviceIdMatch = (member.unitServiceId || '').toLowerCase().includes(q);
+    return nameMatch || rankMatch || roleMatch || serviceIdMatch;
+  });
 
   const handleAudioToggle = () => {
     if (!activeMission) return;
@@ -393,7 +426,7 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {userRole === 'instructor' && pendingAccounts.length > 0 && (
+            {userRole === 'instructor' && (pendingAccounts.length > 0 || pendingBookingsCount > 0) && (
               <button
                 onClick={() => {
                   tacticalAudio.playTacticalAlert();
@@ -401,10 +434,10 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                   setShowApprovalModal(true);
                 }}
                 className="inline-flex items-center gap-1 text-[10px] font-mono font-black text-black bg-gradient-to-r from-amber-400 to-[#f2c14e] px-2 py-0.5 rounded-lg border border-[#f2c14e] shadow-sm shadow-[#f2c14e]/30 transition cursor-pointer shrink-0 animate-pulse active:scale-95"
-                title="Pending recruit applications awaiting Commander commissioning"
+                title="Pending applications and qualification sessions awaiting Commander commissioning"
               >
                 <ShieldCheck className="w-3 h-3 stroke-[2.5]" />
-                <span>{pendingAccounts.length} Pending</span>
+                <span>{pendingAccounts.length + pendingBookingsCount} Pending</span>
               </button>
             )}
 
@@ -748,7 +781,7 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
               </div>
 
               {/* =========================================================================
-                  SQUAD OPERATORS ROSTER (Clean list without voting)
+                  SQUAD OPERATORS ROSTER (With Real-Time Filter & Search)
                  ========================================================================= */}
               <div className="rounded-2xl p-4 tb-card border border-[#f2c14e]/20 space-y-3">
                 <div className="flex items-center justify-between">
@@ -759,45 +792,87 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                     </span>
                   </div>
                   <span className="text-[10px] text-stone-400 font-mono">
-                    {members.length} Operators
+                    {assignedOperatorSearch.trim()
+                      ? `${filteredAssignedOperators.length} of ${members.length} Operators`
+                      : `${members.length} Operators`}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-1.5 pt-1 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
-                  {members.map(member => {
-                    const isCurrentUser = member.id === currentUser.id || member.name.toLowerCase() === currentUser.username.toLowerCase();
-                    const rankFormatted = member.rank ? member.rank.replace(/\s*I\s*/g, ' | ') : '[PFC | جندي أول]';
-
-                    return (
-                      <div
-                        key={member.id}
-                        className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
-                          isCurrentUser
-                            ? 'bg-[#152319] border-emerald-500/50 text-stone-100 ring-1 ring-emerald-500/30'
-                            : 'bg-black/40 border-stone-800 text-stone-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <span className="font-mono text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/25 px-1.5 py-0.5 rounded shrink-0">
-                            {rankFormatted}
-                          </span>
-                          <span className="font-sans font-bold text-stone-100 text-xs truncate">
-                            {member.name}
-                          </span>
-                          {isCurrentUser && (
-                            <span className="text-[9px] px-1 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold shrink-0">
-                              YOU
-                            </span>
-                          )}
-                        </div>
-
-                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded shrink-0">
-                          DEPLOYED
-                        </span>
-                      </div>
-                    );
-                  })}
+                {/* Filter / Search Bar */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-stone-500">
+                    <Search className="w-3.5 h-3.5 text-[#f2c14e]/70" />
+                  </div>
+                  <input
+                    type="text"
+                    value={assignedOperatorSearch}
+                    onChange={(e) => setAssignedOperatorSearch(e.target.value)}
+                    placeholder="Filter by name or rank (e.g. Tariq, CPT, نقيب)..."
+                    className="w-full pl-8 pr-8 py-2 rounded-xl bg-black/60 border border-stone-800 focus:border-[#f2c14e]/60 focus:ring-1 focus:ring-[#f2c14e]/30 text-stone-200 placeholder-stone-500 text-xs font-mono transition outline-none"
+                  />
+                  {assignedOperatorSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setAssignedOperatorSearch('')}
+                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-400 hover:text-stone-200 transition cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
+
+                {/* Operators List or Empty State */}
+                {filteredAssignedOperators.length === 0 ? (
+                  <div className="py-6 px-4 text-center rounded-xl bg-black/40 border border-stone-800/80 space-y-2">
+                    <p className="text-xs text-stone-400 font-mono">
+                      No operators found matching &ldquo;<span className="text-[#f2c14e]">{assignedOperatorSearch}</span>&rdquo;
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setAssignedOperatorSearch('')}
+                      className="px-3 py-1 text-[11px] font-mono font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/30 rounded-lg hover:bg-[#f2c14e]/20 transition cursor-pointer"
+                    >
+                      Clear Filter
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-1.5 pt-1 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                    {filteredAssignedOperators.map(member => {
+                      const isCurrentUser = member.id === currentUser.id || member.name.toLowerCase() === currentUser.username.toLowerCase();
+                      const rankFormatted = member.rank ? member.rank.replace(/\s*I\s*/g, ' | ') : '[PFC | جندي أول]';
+
+                      return (
+                        <div
+                          key={member.id}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+                            isCurrentUser
+                              ? 'bg-[#152319] border-emerald-500/50 text-stone-100 ring-1 ring-emerald-500/30'
+                              : 'bg-black/40 border-stone-800 text-stone-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="font-mono text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/25 px-1.5 py-0.5 rounded shrink-0">
+                              {rankFormatted}
+                            </span>
+                            <span className="font-sans font-bold text-stone-100 text-xs truncate">
+                              {member.name}
+                            </span>
+                            {isCurrentUser && (
+                              <span className="text-[9px] px-1 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold shrink-0">
+                                YOU
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded shrink-0">
+                            DEPLOYED
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Leader Actions */}
@@ -2243,6 +2318,9 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
             if (onUpdateMemberRank) onUpdateMemberRank(accId, rank);
           }}
           preselectedAccountId={preselectedEditMemberId}
+          trainingBookings={trainingBookings}
+          onApproveTrainingBooking={onApproveTrainingBooking}
+          onRejectTrainingBooking={onRejectTrainingBooking}
         />
 
         {/* MODAL: THUNDERBOLT SA'KA ACADEMY QUALIFICATIONS & PASSPORTS */}
@@ -2257,6 +2335,8 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
             userRole={userRole}
             initialSelectedMemberId={academySelectedMemberId}
             lang={lang}
+            trainingBookings={trainingBookings}
+            onSaveTrainingBooking={onSaveTrainingBooking}
           />
         )}
 

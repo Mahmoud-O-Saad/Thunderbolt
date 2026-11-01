@@ -5,13 +5,36 @@ import {
   INITIAL_MISSIONS, 
   INITIAL_NOTIFICATIONS 
 } from './data/initialData';
-import { Mission, SquadMember, BroadcastNotification, UserRole, UserAccount, MissionAttendanceStatus, QualificationStatus } from './types';
+import { 
+  Mission, 
+  SquadMember, 
+  BroadcastNotification, 
+  UserRole, 
+  UserAccount, 
+  MissionAttendanceStatus, 
+  QualificationStatus, 
+  QualificationEntry,
+  TrainingBooking
+} from './types';
 import { ThunderboltApp } from './components/ThunderboltApp';
 import { SplashScreen } from './components/SplashScreen';
 import { LoginPage } from './components/LoginPage';
 import { SignUpModal } from './components/SignUpModal';
 import { IncomingAlertBanner } from './components/IncomingAlertBanner';
+import { PendingClearanceScreen } from './components/PendingClearanceScreen';
+import { AccountSwitcherModal } from './components/AccountSwitcherModal';
 import { tacticalAudio, sendBrowserNotification } from './utils/audio';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { 
+  auth,
+  syncUserAccountToFirestore, 
+  updateClearanceInFirestore, 
+  subscribeToUserAccount, 
+  subscribeToAllUserAccounts,
+  syncTrainingBookingToFirestore,
+  updateTrainingBookingStatusInFirestore,
+  subscribeToTrainingBookings
+} from './utils/firebase';
 
 const DEFAULT_USER: UserAccount = {
   id: 'usr-01',
@@ -55,6 +78,28 @@ const INITIAL_ACCOUNTS: UserAccount[] = [
   },
 ];
 
+const INITIAL_TRAINING_BOOKINGS: TrainingBooking[] = [
+  {
+    id: 'tb-demo-01',
+    qualificationId: '01.1',
+    qualificationTitle: 'Basic Combat Marksmanship (الرماية الأساسية)',
+    candidateId: 'usr-member-01',
+    candidateName: 'Tariq',
+    candidateEmail: 'tariq@thunderbolt.unit',
+    candidateRank: '[PFC | جندي أول]',
+    year: 2026,
+    month: 11,
+    day: 15,
+    timeSlot: '09:00 - 12:00',
+    slotLabel: '0900 - 1200 hrs (Morning Slot)',
+    companionEmail: 'ahmed@thunderbolt.unit',
+    companionName: 'Ahmed',
+    notes: 'Live-fire ARMA qualification lane readiness test with companion operator.',
+    status: 'pending',
+    createdAt: '2026-10-24T10:00:00Z',
+  }
+];
+
 export default function App() {
   // Navigation & View States (English default)
   const [showSplash, setShowSplash] = useState<boolean>(false);
@@ -62,8 +107,17 @@ export default function App() {
     return localStorage.getItem('thunderbolt_is_logged_in') === 'true';
   });
   const [showSignUpGate, setShowSignUpGate] = useState<boolean>(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState<boolean>(false);
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(() => auth.currentUser);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (usr) => {
+      setFirebaseUser(usr);
+    });
+    return () => unsub();
+  }, []);
 
   // Helper to normalize rank formatting to Arabic military rank format [CODE | Arabic Rank]
   const normalizeRank = (rk: string): string => {
@@ -215,6 +269,24 @@ export default function App() {
 
   const [activeIncomingAlert, setActiveIncomingAlert] = useState<BroadcastNotification | null>(null);
 
+  // Training Bookings (Calendar Appointments for Qualification Assessment)
+  const [trainingBookings, setTrainingBookings] = useState<TrainingBooking[]>(() => {
+    const saved = localStorage.getItem('thunderbolt_training_bookings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_TRAINING_BOOKINGS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('thunderbolt_training_bookings', JSON.stringify(trainingBookings));
+  }, [trainingBookings]);
+
   useEffect(() => {
     localStorage.setItem('thunderbolt_user_accounts', JSON.stringify(accounts));
   }, [accounts]);
@@ -251,27 +323,156 @@ export default function App() {
     localStorage.setItem('thunderbolt_user_role', account.role);
   };
 
+  // Real-time subscription to the current user's document in Firestore (only when authenticated with Firebase)
+  useEffect(() => {
+    if (!firebaseUser || !isLoggedIn || !currentUser?.id) return;
+    const unsubscribe = subscribeToUserAccount(currentUser.id, (remoteAccount) => {
+      if (remoteAccount) {
+        setCurrentUser(prev => {
+          if (prev.approvalStatus === 'pending' && remoteAccount.approvalStatus === 'approved') {
+            tacticalAudio.playSuccessBeep();
+          }
+          return { ...prev, ...remoteAccount };
+        });
+        if (remoteAccount.role) {
+          setUserRole(remoteAccount.role);
+          localStorage.setItem('thunderbolt_user_role', remoteAccount.role);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [firebaseUser, isLoggedIn, currentUser?.id]);
+
+  // Real-time subscription for Instructors to sync all user accounts & pending applications
+  useEffect(() => {
+    if (!firebaseUser || !isLoggedIn || userRole !== 'instructor') return;
+    const unsubscribe = subscribeToAllUserAccounts((remoteAccounts) => {
+      if (remoteAccounts && remoteAccounts.length > 0) {
+        setAccounts(prev => {
+          const merged = [...prev];
+          remoteAccounts.forEach(ra => {
+            const idx = merged.findIndex(a => a.id === ra.id || (a.email && a.email.toLowerCase() === ra.email?.toLowerCase()));
+            if (idx >= 0) {
+              merged[idx] = { ...merged[idx], ...ra };
+            } else {
+              merged.push(ra);
+            }
+          });
+          return merged;
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [firebaseUser, isLoggedIn, userRole]);
+
+  // Real-time subscription to Training Bookings from Firestore
+  useEffect(() => {
+    if (!firebaseUser || !isLoggedIn) return;
+    const unsubscribe = subscribeToTrainingBookings((remoteBookings) => {
+      if (remoteBookings && remoteBookings.length > 0) {
+        setTrainingBookings(prev => {
+          const merged = [...prev];
+          remoteBookings.forEach(rb => {
+            const idx = merged.findIndex(b => b.id === rb.id);
+            if (idx >= 0) {
+              merged[idx] = { ...merged[idx], ...rb };
+            } else {
+              merged.push(rb);
+            }
+          });
+          return merged;
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [firebaseUser, isLoggedIn]);
+
+  const handleSaveTrainingBooking = (booking: TrainingBooking) => {
+    tacticalAudio.playSuccessBeep();
+    setTrainingBookings(prev => {
+      const idx = prev.findIndex(b => b.id === booking.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = booking;
+        return next;
+      }
+      return [booking, ...prev];
+    });
+    // Sync to Firebase Firestore cloud database
+    syncTrainingBookingToFirestore(booking);
+  };
+
+  const handleApproveTrainingBooking = (bookingId: string) => {
+    tacticalAudio.playSuccessBeep();
+    const approvedByName = currentUser.username || 'Dragon';
+    const approvedAtIso = new Date().toISOString();
+    setTrainingBookings(prev =>
+      prev.map(b =>
+        b.id === bookingId
+          ? {
+              ...b,
+              status: 'confirmed',
+              approvedBy: approvedByName,
+              approvedAt: approvedAtIso,
+            }
+          : b
+      )
+    );
+    // Sync status change to Firebase Firestore cloud database
+    updateTrainingBookingStatusInFirestore(bookingId, 'confirmed', approvedByName);
+  };
+
+  const handleRejectTrainingBooking = (bookingId: string) => {
+    tacticalAudio.playRadioClick();
+    const approvedByName = currentUser.username || 'Dragon';
+    setTrainingBookings(prev =>
+      prev.map(b =>
+        b.id === bookingId
+          ? {
+              ...b,
+              status: 'rejected',
+              approvedBy: approvedByName,
+              approvedAt: new Date().toISOString(),
+            }
+          : b
+      )
+    );
+    // Sync status change to Firebase Firestore cloud database
+    updateTrainingBookingStatusInFirestore(bookingId, 'rejected', approvedByName);
+  };
+
   // Add a new account (e.g. recruit signup or leader adding member)
   const handleAddAccount = (newAccount: UserAccount, autoSwitch: boolean = true) => {
+    // Force pending approval for any self sign up unless an instructor is logged in
+    const isCommanderAdmin = userRole === 'instructor';
+    const finalizedAccount: UserAccount = {
+      ...newAccount,
+      approvalStatus: isCommanderAdmin ? (newAccount.approvalStatus || 'approved') : 'pending',
+      role: isCommanderAdmin ? newAccount.role : 'member',
+    };
+
     setAccounts(prev => {
-      const existing = prev.find(a => a.id === newAccount.id || a.username.toLowerCase() === newAccount.username.toLowerCase());
+      const existing = prev.find(a => a.id === finalizedAccount.id || a.username.toLowerCase() === finalizedAccount.username.toLowerCase());
       if (existing) {
-        return prev.map(a => a.id === existing.id ? newAccount : a);
+        return prev.map(a => a.id === existing.id ? finalizedAccount : a);
       }
-      return [newAccount, ...prev];
+      return [finalizedAccount, ...prev];
     });
 
+    // Sync to Firestore cloud database
+    syncUserAccountToFirestore(finalizedAccount);
+
     // If account is already approved (e.g. created by leader), add to squad members roster
-    if (newAccount.approvalStatus !== 'pending' && newAccount.approvalStatus !== 'rejected') {
+    if (finalizedAccount.approvalStatus !== 'pending' && finalizedAccount.approvalStatus !== 'rejected') {
       setMembers(prev => {
-        if (prev.some(m => m.id === newAccount.id || m.name.toLowerCase() === newAccount.username.toLowerCase())) {
+        if (prev.some(m => m.id === finalizedAccount.id || m.name.toLowerCase() === finalizedAccount.username.toLowerCase())) {
           return prev;
         }
         const newMember: SquadMember = {
-          id: newAccount.id,
-          name: newAccount.username,
-          rank: newAccount.rank,
-          role: newAccount.role === 'instructor' ? 'Tactical Instructor' : 'Squad Operator',
+          id: finalizedAccount.id,
+          name: finalizedAccount.username,
+          rank: finalizedAccount.rank,
+          role: finalizedAccount.role === 'instructor' ? 'Tactical Instructor' : 'Squad Operator',
           status: 'READY',
           acknowledgedMissions: [],
           lastSeen: 'Just now',
@@ -285,9 +486,9 @@ export default function App() {
         id: `notif-req-${Date.now()}`,
         missionId: 'msn-approval',
         missionCode: 'RECRUIT APPLICATION',
-        title: `⚡ New Recruit Application: ${newAccount.username}`,
+        title: `⚡ New Recruit Application: ${finalizedAccount.username}`,
         date: 'Today',
-        message: `New recruit (${newAccount.username}) requested to join Thunderbolt Unit. Suggested rank: ${newAccount.requestedRank || '[PFC | جندي أول]'}. Commander clearance required.`,
+        message: `New recruit (${finalizedAccount.username}) requested to join Thunderbolt Unit. Suggested rank: ${finalizedAccount.requestedRank || '[PFC | جندي أول]'}. Commander clearance required.`,
         sender: 'Thunderbolt HQ Command',
         timestamp: 'Just now',
         priority: 'HIGH',
@@ -295,14 +496,14 @@ export default function App() {
       };
       setNotifications(prev => [alertNotif, ...prev]);
       setActiveIncomingAlert(alertNotif);
-      sendBrowserNotification(`⚡ New Recruit Application: ${newAccount.username}`, {
+      sendBrowserNotification(`⚡ New Recruit Application: ${finalizedAccount.username}`, {
         body: 'Commander review and military rank commissioning required.',
       });
     }
 
     if (autoSwitch) {
-      setCurrentUser(newAccount);
-      setUserRole(newAccount.role);
+      setCurrentUser(finalizedAccount);
+      setUserRole(finalizedAccount.role);
     }
   };
 
@@ -322,6 +523,9 @@ export default function App() {
         return acc;
       })
     );
+
+    // Update in Firestore cloud database
+    updateClearanceInFirestore(accountId, 'approved', rankFormatted, currentUser.username);
 
     // Find the account to add to members roster
     const target = accounts.find(a => a.id === accountId);
@@ -384,6 +588,10 @@ export default function App() {
         return acc;
       })
     );
+
+    // Update in Firestore cloud database
+    updateClearanceInFirestore(accountId, 'rejected', undefined, currentUser.username);
+
     setMembers(prev => prev.filter(m => m.id !== accountId));
     if (currentUser.id === accountId) {
       setCurrentUser(prev => ({
@@ -594,7 +802,7 @@ export default function App() {
   };
 
   // Update member qualifications (Sa'ka Academy Certification)
-  const handleUpdateMemberQualifications = (memberId: string, qualifications: Record<string, QualificationStatus>) => {
+  const handleUpdateMemberQualifications = (memberId: string, qualifications: Record<string, QualificationEntry>) => {
     setAccounts(prev =>
       prev.map(acc => (acc.id === memberId ? { ...acc, qualifications } : acc))
     );
@@ -620,6 +828,53 @@ export default function App() {
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
         />
+
+        {showSignUpGate && (
+          <SignUpModal
+            isOpen={showSignUpGate}
+            onClose={() => setShowSignUpGate(false)}
+            onSignUpComplete={handleSignUpFromGate}
+            initialRole="member"
+          />
+        )}
+      </>
+    );
+  }
+
+  // Military Clearance Gate: All newly registered accounts require instructor approval before entering the app
+  if (currentUser.approvalStatus === 'pending' || currentUser.approvalStatus === 'rejected') {
+    return (
+      <>
+        <PendingClearanceScreen
+          currentUser={currentUser}
+          onRefreshStatus={() => {
+            const localAcc = accounts.find(a => a.id === currentUser.id);
+            if (localAcc) {
+              setCurrentUser(localAcc);
+            }
+          }}
+          onSwitchAccount={() => setShowAccountSwitcher(true)}
+          onLogout={handleLogout}
+          lang={lang}
+        />
+
+        {showAccountSwitcher && (
+          <AccountSwitcherModal
+            isOpen={showAccountSwitcher}
+            onClose={() => setShowAccountSwitcher(false)}
+            accounts={accounts}
+            currentAccountId={currentUser.id}
+            onSwitchAccount={(acc) => {
+              handleSwitchAccount(acc);
+              setShowAccountSwitcher(false);
+            }}
+            onOpenAddAccount={(role) => {
+              setShowAccountSwitcher(false);
+              setShowSignUpGate(true);
+            }}
+            onDeleteAccount={handleDeleteAccount}
+          />
+        )}
 
         {showSignUpGate && (
           <SignUpModal
@@ -681,6 +936,10 @@ export default function App() {
         onUpdateMemberRank={handleUpdateMemberRank}
         onLogout={handleLogout}
         onUpdateMemberQualifications={handleUpdateMemberQualifications}
+        trainingBookings={trainingBookings}
+        onSaveTrainingBooking={handleSaveTrainingBooking}
+        onApproveTrainingBooking={handleApproveTrainingBooking}
+        onRejectTrainingBooking={handleRejectTrainingBooking}
       />
     </>
   );

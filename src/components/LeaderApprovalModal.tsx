@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserAccount, AccountApprovalStatus } from '../types';
+import { UserAccount, AccountApprovalStatus, TrainingBooking } from '../types';
 import { AVAILABLE_RANKS, RankItem, isCommandRank, isStaffRank } from '../data/initialData';
 import { 
   ShieldCheck, 
@@ -12,9 +12,14 @@ import {
   ChevronRight, 
   AlertCircle,
   Shield,
-  Sparkles
+  Sparkles,
+  Calendar,
+  CalendarCheck,
+  Mail,
+  ExternalLink
 } from 'lucide-react';
 import { tacticalAudio } from '../utils/audio';
+import { formatBookingDate, generateGoogleCalendarUrl, generateGmailInviteUrl } from '../utils/calendar';
 
 interface LeaderApprovalModalProps {
   isOpen: boolean;
@@ -24,6 +29,9 @@ interface LeaderApprovalModalProps {
   onRejectAccount: (accountId: string) => void;
   onUpdateMemberRank: (accountId: string, newRank: string) => void;
   preselectedAccountId?: string;
+  trainingBookings?: TrainingBooking[];
+  onApproveTrainingBooking?: (bookingId: string) => void;
+  onRejectTrainingBooking?: (bookingId: string) => void;
 }
 
 export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
@@ -34,8 +42,11 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
   onRejectAccount,
   onUpdateMemberRank,
   preselectedAccountId,
+  trainingBookings = [],
+  onApproveTrainingBooking,
+  onRejectTrainingBooking,
 }) => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'roster'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'roster' | 'training'>('pending');
   const [selectedRankForAccount, setSelectedRankForAccount] = useState<Record<string, string>>({});
   const [editingMemberId, setEditingMemberId] = useState<string | null>(preselectedAccountId || null);
   const [newRankForEdit, setNewRankForEdit] = useState<string>('[PFC | جندي أول]');
@@ -50,6 +61,9 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
   const approvedMembers = accounts.filter(
     (acc) => acc.approvalStatus !== 'pending' && acc.approvalStatus !== 'rejected'
   );
+
+  const pendingBookings = trainingBookings.filter(b => b.status === 'pending');
+  const pastBookings = trainingBookings.filter(b => b.status !== 'pending');
 
   const handleRankSelect = (accountId: string, rankFormatted: string) => {
     setSelectedRankForAccount((prev) => ({
@@ -81,9 +95,27 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
     setTimeout(() => setFeedbackNotice(null), 4000);
   };
 
+  const handleApproveBooking = (booking: TrainingBooking) => {
+    tacticalAudio.playSuccessBeep();
+    if (onApproveTrainingBooking) {
+      onApproveTrainingBooking(booking.id);
+    }
+    setFeedbackNotice(`Training session for ${booking.candidateName} (${booking.qualificationTitle}) approved!`);
+    setTimeout(() => setFeedbackNotice(null), 4000);
+  };
+
+  const handleRejectBooking = (booking: TrainingBooking) => {
+    tacticalAudio.playRadioClick();
+    if (onRejectTrainingBooking) {
+      onRejectTrainingBooking(booking.id);
+    }
+    setFeedbackNotice(`Training session for ${booking.candidateName} was rejected.`);
+    setTimeout(() => setFeedbackNotice(null), 4000);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-[#0e1310] border-2 border-[#f2c14e]/50 rounded-3xl p-5 text-stone-200 shadow-2xl shadow-[#f2c14e]/20 relative overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-xl bg-[#0e1310] border-2 border-[#f2c14e]/50 rounded-3xl p-5 text-stone-200 shadow-2xl shadow-[#f2c14e]/20 relative overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Gold tactical glow */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#f2c14e] to-transparent" />
@@ -102,7 +134,7 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                 </h3>
               </div>
               <p className="text-[11px] text-[#f2c14e] font-mono">
-                MAJ. GEN. DRAGON · MILITARY COMMISSION DESK
+                MAJ. GEN. DRAGON · MILITARY COMMISSION & TRAINING DESK
               </p>
             </div>
           </div>
@@ -126,23 +158,23 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
           </div>
         )}
 
-        {/* Navigation Tabs: Pending Requests vs Member Ranks */}
-        <div className="grid grid-cols-2 gap-2 pt-3 shrink-0">
+        {/* Navigation Tabs: Pending Requests vs Member Ranks vs Training Sessions */}
+        <div className="grid grid-cols-3 gap-2 pt-3 shrink-0">
           <button
             onClick={() => {
               tacticalAudio.playRadioClick();
               setActiveTab('pending');
             }}
-            className={`py-2 px-3 rounded-xl font-mono text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
+            className={`py-2 px-2 rounded-xl font-mono text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
               activeTab === 'pending'
                 ? 'bg-[#f2c14e] text-black border-[#f2c14e] shadow-md shadow-[#f2c14e]/20'
                 : 'bg-black/50 text-stone-400 border-stone-800 hover:border-stone-700'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Pending Applications</span>
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Applications</span>
             {pendingAccounts.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black ${
+              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
                 activeTab === 'pending' ? 'bg-black text-[#f2c14e]' : 'bg-[#f2c14e] text-black'
               }`}>
                 {pendingAccounts.length}
@@ -155,17 +187,39 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
               tacticalAudio.playRadioClick();
               setActiveTab('roster');
             }}
-            className={`py-2 px-3 rounded-xl font-mono text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
+            className={`py-2 px-2 rounded-xl font-mono text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
               activeTab === 'roster'
                 ? 'bg-[#f2c14e] text-black border-[#f2c14e] shadow-md shadow-[#f2c14e]/20'
                 : 'bg-black/50 text-stone-400 border-stone-800 hover:border-stone-700'
             }`}
           >
-            <Award className="w-3.5 h-3.5" />
-            <span>Manage Operator Ranks</span>
+            <Award className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Roster</span>
             <span className="text-[10px] font-mono text-stone-400">
               ({approvedMembers.length})
             </span>
+          </button>
+
+          <button
+            onClick={() => {
+              tacticalAudio.playRadioClick();
+              setActiveTab('training');
+            }}
+            className={`py-2 px-2 rounded-xl font-mono text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+              activeTab === 'training'
+                ? 'bg-[#f2c14e] text-black border-[#f2c14e] shadow-md shadow-[#f2c14e]/20'
+                : 'bg-black/50 text-stone-400 border-stone-800 hover:border-stone-700'
+            }`}
+          >
+            <CalendarCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Training</span>
+            {pendingBookings.length > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                activeTab === 'training' ? 'bg-black text-[#f2c14e]' : 'bg-[#f2c14e] text-black'
+              }`}>
+                {pendingBookings.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -436,6 +490,228 @@ export const LeaderApprovalModal: React.FC<LeaderApprovalModalProps> = ({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            TAB 3: TRAINING & ASSESSMENT BOOKING DESK (USER REQUIREMENT)
+           ========================================================================= */}
+        {activeTab === 'training' && (
+          <div className="flex-1 overflow-y-auto space-y-4 pt-3 pr-1 custom-scrollbar">
+            {/* Header description */}
+            <div className="p-3 rounded-xl bg-gradient-to-r from-[#211a08] via-black to-[#0d140e] border border-[#f2c14e]/40 space-y-1">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-[#f2c14e]" />
+                <h4 className="text-xs font-black uppercase text-stone-100 tracking-wider">
+                  Sa'ka Qualification Training Desk · جدول مواعيد التقييم
+                </h4>
+              </div>
+              <p className="text-[11px] text-stone-300">
+                Review and approve operator qualification assessment appointments. Confirmed sessions sync with Google Calendar & companion Gmail invites.
+              </p>
+            </div>
+
+            {/* PENDING SESSIONS */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono font-bold text-[#f2c14e] uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Pending Commander Approval ({pendingBookings.length})</span>
+                </span>
+              </div>
+
+              {pendingBookings.length === 0 ? (
+                <div className="text-center py-8 space-y-2 border border-dashed border-stone-800 rounded-2xl bg-black/30 p-4">
+                  <div className="w-10 h-10 rounded-full bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+                    <Check className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-mono text-stone-300 font-bold">
+                    No pending training booking requests
+                  </p>
+                  <p className="text-[10px] text-stone-500">
+                    All operator assessment slots have been reviewed and dispatched.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingBookings.map((booking) => {
+                    const googleCalUrl = generateGoogleCalendarUrl(booking);
+                    const gmailUrl = generateGmailInviteUrl(booking);
+
+                    return (
+                      <div
+                        key={booking.id}
+                        className="p-3.5 rounded-2xl bg-black/70 border-2 border-[#f2c14e]/50 space-y-3 shadow-lg shadow-[#f2c14e]/10 relative overflow-hidden"
+                      >
+                        {/* Top Badge & Date */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-black text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/30 px-2 py-0.5 rounded">
+                                {booking.qualificationId}
+                              </span>
+                              <span className="text-xs font-bold text-stone-100 font-sans">
+                                {booking.qualificationTitle}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-xs font-mono text-stone-300">
+                              <span className="text-emerald-400 font-bold">
+                                📅 {formatBookingDate(booking.year, booking.month, booking.day)}
+                              </span>
+                              <span>·</span>
+                              <span className="text-stone-300">
+                                ⏰ {booking.slotLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-amber-500/20 text-[#f2c14e] border border-amber-500/40 animate-pulse shrink-0">
+                            Awaiting Approval
+                          </span>
+                        </div>
+
+                        {/* Candidate & Companion info */}
+                        <div className="p-2.5 rounded-xl bg-stone-900/80 border border-stone-800 space-y-1 text-xs">
+                          <div className="flex items-center justify-between text-stone-300">
+                            <span>Candidate Operator:</span>
+                            <strong className="text-stone-100 font-mono">
+                              {booking.candidateRank} {booking.candidateName}
+                            </strong>
+                          </div>
+                          <div className="flex items-center justify-between text-stone-400 text-[11px]">
+                            <span>Operator Email:</span>
+                            <span className="font-mono">{booking.candidateEmail || 'N/A'}</span>
+                          </div>
+
+                          {booking.companionEmail && (
+                            <div className="pt-1.5 mt-1 border-t border-stone-800 flex items-center justify-between text-amber-300 text-xs">
+                              <span className="flex items-center gap-1">
+                                <Mail className="w-3.5 h-3.5 text-red-400" />
+                                <span>Companion to Invite:</span>
+                              </span>
+                              <strong className="font-mono">
+                                {booking.companionName ? `${booking.companionName} (${booking.companionEmail})` : booking.companionEmail}
+                              </strong>
+                            </div>
+                          )}
+
+                          {booking.notes && (
+                            <div className="pt-1 mt-1 border-t border-stone-800 text-[11px] text-stone-400">
+                              <span className="text-stone-500">Remarks: </span>
+                              <span className="italic font-sans">"{booking.notes}"</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons: Approve, Reject, External Links */}
+                        <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={googleCalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 text-[11px] font-mono flex items-center gap-1.5 transition"
+                            >
+                              <ExternalLink className="w-3 h-3 text-[#f2c14e]" />
+                              <span>Google Cal</span>
+                            </a>
+
+                            {booking.companionEmail && (
+                              <a
+                                href={gmailUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 text-[11px] font-mono flex items-center gap-1.5 transition"
+                              >
+                                <Mail className="w-3 h-3 text-red-400" />
+                                <span>Send Invite</span>
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleRejectBooking(booking)}
+                              className="px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-300 text-xs font-mono font-bold flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Reject</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleApproveBooking(booking)}
+                              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-extrabold flex items-center gap-1.5 shadow-md shadow-emerald-900/40 transition cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Approve Session</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* CONFIRMED / HISTORICAL SESSIONS */}
+            {pastBookings.length > 0 && (
+              <div className="space-y-2 pt-3 border-t border-stone-800">
+                <span className="text-[11px] font-mono font-bold text-stone-400 uppercase tracking-wider block">
+                  Processed Sessions ({pastBookings.length})
+                </span>
+
+                <div className="space-y-2">
+                  {pastBookings.map((booking) => {
+                    const isConfirmed = booking.status === 'confirmed';
+                    const googleCalUrl = generateGoogleCalendarUrl(booking);
+
+                    return (
+                      <div
+                        key={booking.id}
+                        className="p-2.5 rounded-xl bg-black/40 border border-stone-800/80 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-[#f2c14e]">
+                              {booking.qualificationId}
+                            </span>
+                            <span className="font-bold text-stone-200">
+                              {booking.candidateName}
+                            </span>
+                            <span className="text-stone-400 font-mono text-[11px]">
+                              · {formatBookingDate(booking.year, booking.month, booking.day)} ({booking.timeSlot})
+                            </span>
+                          </div>
+                          {booking.companionEmail && (
+                            <span className="text-[10px] text-stone-400 block font-mono">
+                              Companion: {booking.companionName || booking.companionEmail}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                            isConfirmed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-red-500/20 text-red-400 border border-red-500/40'
+                          }`}>
+                            {booking.status}
+                          </span>
+                          <a
+                            href={googleCalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded bg-stone-900 hover:bg-stone-800 text-[#f2c14e]"
+                            title="Open Google Calendar"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

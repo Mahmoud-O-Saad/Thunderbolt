@@ -10,6 +10,16 @@ export type AccountApprovalStatus = 'approved' | 'pending' | 'rejected';
 
 export type QualificationStatus = 'locked' | 'available' | 'completed';
 
+export interface QualificationRecordDetail {
+  status: QualificationStatus;
+  remarks?: string; // Evaluation Remarks (ملاحظات التقييم)
+  developmentNotes?: string; // Development Notes (ملاحظات التطوير والتوجيه)
+  certifiedBy?: string; // e.g. "[MG | لواء أ.ح] Dragon"
+  certifiedDate?: string; // e.g. "2026-10-31"
+}
+
+export type QualificationEntry = QualificationStatus | QualificationRecordDetail;
+
 export interface UserAccount {
   id: string;
   username: string; // Single name, e.g. "Mahmoud"
@@ -25,7 +35,7 @@ export interface UserAccount {
   linkedDiscord?: string;
   joinedDate: string;
   isRegistered: boolean;
-  qualifications?: Record<string, QualificationStatus>;
+  qualifications?: Record<string, QualificationEntry>;
 }
 
 export interface SquadMember {
@@ -40,7 +50,7 @@ export interface SquadMember {
   deviceType: 'Tactical Radio' | 'Satellite Terminal' | 'Mobile Pager' | 'Command HUD';
   steamUid?: string;
   unitServiceId?: string; // e.g. "TU-9198"
-  qualifications?: Record<string, QualificationStatus>;
+  qualifications?: Record<string, QualificationEntry>;
 }
 
 export interface TacticalObjective {
@@ -92,4 +102,26 @@ export interface BroadcastNotification {
   timestamp: string;
   priority: Priority;
   readByMembers: string[];
+}
+
+export interface TrainingBooking {
+  id: string;
+  qualificationId: string;
+  qualificationTitle: string;
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidateRank: string;
+  year: number;
+  month: number;
+  day: number;
+  timeSlot: string;
+  slotLabel?: string;
+  companionEmail?: string;
+  companionName?: string;
+  notes?: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  createdAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }

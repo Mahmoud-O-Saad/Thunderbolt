@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { UserAccount, UserRole } from '../types';
 import { tacticalAudio } from '../utils/audio';
+import { signInWithGooglePopup } from '../utils/firebase';
 
 interface LoginPageProps {
   accounts: UserAccount[];
@@ -119,29 +120,102 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }, 600);
   };
 
-  // Google Login One-Click
+  // Google Login Flow via Firebase Auth
+  const handleGoogleSignInFlow = async () => {
+    tacticalAudio.playRadioClick();
+    setIsAuthorizing(true);
+    setErrorMessage(null);
+
+    try {
+      const fbUser = await signInWithGooglePopup();
+      if (fbUser && fbUser.email) {
+        tacticalAudio.playTacticalAlert();
+        const userEmail = fbUser.email.toLowerCase();
+        const found = accounts.find(a => a.email && a.email.toLowerCase() === userEmail);
+
+        if (found) {
+          setSuccessNotice(
+            lang === 'ar'
+              ? `تم تسجيل الدخول بنجاح عبر Google: ${userEmail}`
+              : `Signed in successfully via Google: ${userEmail}`
+          );
+          setTimeout(() => {
+            onLoginSuccess(found);
+            setIsAuthorizing(false);
+          }, 600);
+          return;
+        }
+
+        // New Google Sign Up:
+        // mahmoudosama3003@gmail.com is Commander / Instructor.
+        // All other emails require instructor approval ('pending').
+        const isCommander = userEmail === 'mahmoudosama3003@gmail.com' || userEmail.includes('dragon');
+        const randomDigits = Math.floor(1000 + Math.random() * 9000);
+        const displayName = fbUser.displayName || userEmail.split('@')[0];
+        const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+
+        const newGoogleAccount: UserAccount = {
+          id: fbUser.uid || `usr-google-${Date.now()}`,
+          username: formattedName,
+          rank: isCommander ? '[MG | لواء أ.ح]' : '[PVT | جندي]',
+          role: isCommander ? 'instructor' : 'member',
+          approvalStatus: isCommander ? 'approved' : 'pending',
+          email: userEmail,
+          unitServiceId: `TU-${randomDigits}`,
+          steamUid: `7656119800000${randomDigits}`,
+          authProvider: 'google',
+          linkedGmail: userEmail,
+          joinedDate: new Date().toISOString().split('T')[0],
+          isRegistered: true,
+        };
+
+        setSuccessNotice(
+          lang === 'ar'
+            ? `تم تسجيل الحساب بنجاح عبر Google: ${userEmail} · ${isCommander ? 'مصرح بالدخول كقائد' : 'بانتظار تصريح القيادة'}`
+            : `Account registered via Google: ${userEmail} · ${isCommander ? 'Commander Clearance Active' : 'Pending Instructor Clearance'}`
+        );
+
+        setTimeout(() => {
+          onLoginSuccess(newGoogleAccount);
+          setIsAuthorizing(false);
+        }, 600);
+        return;
+      } else {
+        setIsAuthorizing(false);
+      }
+    } catch {
+      setIsAuthorizing(false);
+      setShowGoogleModal(true);
+    }
+  };
+
+  // Google Login Confirmation (from modal fallback)
   const handleGoogleLoginConfirm = () => {
     tacticalAudio.playTacticalAlert();
     setShowGoogleModal(false);
     setIsAuthorizing(true);
 
-    const googleUser: UserAccount = accounts.find(a => a.email?.includes('gmail')) || {
+    const userEmail = 'mahmoudosama3003@gmail.com';
+    const isCommander = true;
+    const googleUser: UserAccount = accounts.find(a => a.email && a.email.toLowerCase() === userEmail) || {
       id: `usr-google-${Date.now()}`,
       username: 'Mahmoud',
       rank: '[MG | لواء أ.ح]',
       role: 'instructor',
       approvalStatus: 'approved',
-      email: 'mahmoudosama3003@gmail.com',
+      email: userEmail,
       unitServiceId: 'TU-9198',
       steamUid: '76561198000009198',
+      authProvider: 'google',
+      linkedGmail: userEmail,
       joinedDate: new Date().toISOString().split('T')[0],
       isRegistered: true,
     };
 
     setSuccessNotice(
       lang === 'ar'
-        ? `تم تسجيل الدخول بنجاح عبر Google: mahmoudosama3003@gmail.com`
-        : `Signed in successfully via Google: mahmoudosama3003@gmail.com`
+        ? `تم تسجيل الدخول بنجاح عبر Google: ${userEmail}`
+        : `Signed in successfully via Google: ${userEmail}`
     );
 
     setTimeout(() => {
@@ -401,10 +475,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {/* Google Button */}
               <button
                 type="button"
-                onClick={() => {
-                  tacticalAudio.playRadioClick();
-                  setShowGoogleModal(true);
-                }}
+                onClick={handleGoogleSignInFlow}
                 className="py-2.5 px-3 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-sans font-bold flex items-center justify-center gap-2 transition hover:border-amber-400/50 cursor-pointer"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">

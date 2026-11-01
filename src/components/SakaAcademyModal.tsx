@@ -16,16 +16,41 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
-  ClipboardCheck
+  ClipboardCheck,
+  Edit3,
+  Save,
+  MessageSquare,
+  TrendingUp,
+  RotateCcw,
+  Unlock,
+  Calendar,
+  CalendarPlus,
+  Mail,
+  Clock
 } from 'lucide-react';
-import { UserAccount, SquadMember, UserRole } from '../types';
+import { 
+  UserAccount, 
+  SquadMember, 
+  UserRole, 
+  QualificationStatus, 
+  QualificationEntry, 
+  QualificationRecordDetail,
+  TrainingBooking
+} from '../types';
 import { 
   QUALIFICATION_MODULES, 
   QualificationModule, 
-  QualificationStatus, 
-  calculateMemberQualifications 
+  calculateMemberQualifications,
+  resolveModuleStatus,
+  getEntryStatus,
+  getEntryRemarks,
+  getEntryDevNotes,
+  getEntryCertifier,
+  getEntryDate
 } from '../data/qualificationsData';
 import { tacticalAudio } from '../utils/audio';
+import { TrainingBookingModal } from './TrainingBookingModal';
+import { formatBookingDate, generateGoogleCalendarUrl, generateGmailInviteUrl } from '../utils/calendar';
 
 interface SakaAcademyModalProps {
   isOpen: boolean;
@@ -33,10 +58,12 @@ interface SakaAcademyModalProps {
   currentUser: UserAccount;
   accounts: UserAccount[];
   members: SquadMember[];
-  onUpdateMemberQualifications: (memberId: string, qualifications: Record<string, QualificationStatus>) => void;
+  onUpdateMemberQualifications: (memberId: string, qualifications: Record<string, QualificationEntry>) => void;
   userRole: UserRole;
   initialSelectedMemberId?: string;
   lang?: 'en' | 'ar';
+  trainingBookings?: TrainingBooking[];
+  onSaveTrainingBooking?: (booking: TrainingBooking) => void;
 }
 
 export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
@@ -49,6 +76,8 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
   userRole,
   initialSelectedMemberId,
   lang = 'en',
+  trainingBookings = [],
+  onSaveTrainingBooking,
 }) => {
   // Navigation Tabs: DASHBOARD | QUALIFICATIONS | ASSESSMENT | PERSONNEL RECORDS | EXPORT
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'QUALIFICATIONS' | 'ASSESSMENT' | 'PERSONNEL RECORDS' | 'EXPORT'>('QUALIFICATIONS');
@@ -61,6 +90,9 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
   // Selected qualification in the list
   const [selectedModuleId, setSelectedModuleId] = useState<string>('01.1');
 
+  // Booking modal state
+  const [showBookingModal, setShowBookingModal] = useState<boolean>(false);
+
   // Manual dossier popup
   const [activeManual, setActiveManual] = useState<{
     title: string;
@@ -71,6 +103,18 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
   // Success alert for instructor actions
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // Inline editing states for Remarks and Development Notes
+  const [editingRemarksModuleId, setEditingRemarksModuleId] = useState<string | null>(null);
+  const [remarksInput, setRemarksInput] = useState<string>('');
+
+  const [editingDevNotesModuleId, setEditingDevNotesModuleId] = useState<string | null>(null);
+  const [devNotesInput, setDevNotesInput] = useState<string>('');
+
+  // Assessment tab modal for editing both remarks & dev notes
+  const [assessmentModalModule, setAssessmentModalModule] = useState<QualificationModule | null>(null);
+  const [assessmentRemarks, setAssessmentRemarks] = useState<string>('');
+  const [assessmentDevNotes, setAssessmentDevNotes] = useState<string>('');
 
   if (!isOpen) return null;
 
@@ -83,23 +127,62 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
   const targetSteamUid = targetAccount?.steamUid || targetMember?.steamUid || '76561198000009198';
 
   // Member qualifications map
-  const memberQualMap: Record<string, QualificationStatus> = 
+  const memberQualMap: Record<string, QualificationEntry> = 
     targetAccount?.qualifications || 
     targetMember?.qualifications || 
     (targetName.toLowerCase() === 'dragon' 
-      ? Object.fromEntries(QUALIFICATION_MODULES.map(m => [m.id, 'completed']))
-      : { '01.1': 'completed', '01.2': 'available' });
+      ? Object.fromEntries(QUALIFICATION_MODULES.map(m => [m.id, {
+          status: 'completed' as QualificationStatus,
+          remarks: 'Master qualification certified with highest military distinction.',
+          developmentNotes: 'Commander qualification benchmark.',
+          certifiedBy: '[MG | لواء أ.ح] Dragon',
+          certifiedDate: '2026-10-01'
+        }]))
+      : { 
+          '01.1': {
+            status: 'completed' as QualificationStatus,
+            remarks: 'Proficient in contact drill reaction, 6-digit grid navigation, and basic TCCC.',
+            developmentNotes: 'Focus on silent hand-signals and linear danger crossing for next stage.',
+            certifiedBy: `${currentUser.rank} ${currentUser.username}`,
+            certifiedDate: '2026-10-25'
+          }
+        });
 
   const stats = calculateMemberQualifications(memberQualMap);
   const selectedModule = QUALIFICATION_MODULES.find(m => m.id === selectedModuleId) || QUALIFICATION_MODULES[0];
-  const currentModuleStatus: QualificationStatus = memberQualMap[selectedModule.id] || (selectedModule.id === '01.1' ? 'available' : 'locked');
+  const selectedResolved = resolveModuleStatus(selectedModule.id, memberQualMap);
+
+  const currentRemarks = getEntryRemarks(memberQualMap[selectedModule.id]);
+  const currentDevNotes = getEntryDevNotes(memberQualMap[selectedModule.id]);
+  const currentCertifier = getEntryCertifier(memberQualMap[selectedModule.id]);
+  const currentDate = getEntryDate(memberQualMap[selectedModule.id]);
 
   const isInstructor = userRole === 'instructor' || currentUser.username.toLowerCase() === 'dragon';
 
-  // Handle changing qualification status for the selected operator
+  // Handle setting qualification status (Certified / Available / Locked)
   const handleSetStatus = (newStatus: QualificationStatus) => {
     tacticalAudio.playSuccessBeep();
-    const updated = { ...memberQualMap, [selectedModule.id]: newStatus };
+    const existing = memberQualMap[selectedModule.id];
+    const existingObj: Partial<QualificationRecordDetail> = typeof existing === 'object' && existing !== null ? existing : {};
+    
+    let updatedEntry: QualificationEntry;
+    if (newStatus === 'completed') {
+      updatedEntry = {
+        ...existingObj,
+        status: 'completed',
+        remarks: existingObj.remarks || (currentRemarks || 'Certified under Sa\'ka Combat Standards.'),
+        developmentNotes: existingObj.developmentNotes || currentDevNotes,
+        certifiedBy: `${currentUser.rank} ${currentUser.username}`,
+        certifiedDate: new Date().toISOString().split('T')[0]
+      };
+    } else {
+      updatedEntry = {
+        ...existingObj,
+        status: newStatus
+      };
+    }
+
+    const updated = { ...memberQualMap, [selectedModule.id]: updatedEntry };
     onUpdateMemberQualifications(selectedMemberId, updated);
 
     const statusText = 
@@ -108,6 +191,102 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
     setActionNotice(`Updated ${selectedModule.code} for ${targetName}: ${statusText}`);
     setTimeout(() => setActionNotice(null), 3500);
+  };
+
+  // Unlock all qualifications for the current operator (شيل Lock عن الكل)
+  const handleUnlockAll = () => {
+    tacticalAudio.playSuccessBeep();
+    const updated: Record<string, QualificationEntry> = { ...memberQualMap };
+    QUALIFICATION_MODULES.forEach(mod => {
+      const current = getEntryStatus(updated[mod.id]);
+      if (current !== 'completed') {
+        const existingVal = updated[mod.id];
+        const existingObj: Partial<QualificationRecordDetail> = typeof existingVal === 'object' && existingVal !== null ? (existingVal as QualificationRecordDetail) : {};
+        updated[mod.id] = { ...existingObj, status: 'available' as QualificationStatus };
+      }
+    });
+    onUpdateMemberQualifications(selectedMemberId, updated);
+    setActionNotice(`🔓 تم فك القفل (شيل Lock) عن جميع المؤهلات للمقاتل ${targetName}!`);
+    setTimeout(() => setActionNotice(null), 3500);
+  };
+
+  // Reset locks according to natural prerequisites tree
+  const handleResetLocks = () => {
+    tacticalAudio.playRadioClick();
+    const updated: Record<string, QualificationEntry> = { ...memberQualMap };
+    QUALIFICATION_MODULES.forEach(mod => {
+      const current = getEntryStatus(updated[mod.id]);
+      if (current === 'available') {
+        delete updated[mod.id];
+      }
+    });
+    onUpdateMemberQualifications(selectedMemberId, updated);
+    setActionNotice(`🔒 تمت إعادة ضبط الأقفال وفقاً للمتطلبات السابقة للمقاتل ${targetName}`);
+    setTimeout(() => setActionNotice(null), 3000);
+  };
+
+  // Save Remarks
+  const handleSaveRemarks = (moduleId: string) => {
+    tacticalAudio.playSuccessBeep();
+    const existing = memberQualMap[moduleId];
+    const existingObj: Partial<QualificationRecordDetail> = typeof existing === 'object' && existing !== null ? existing : {};
+    
+    const updatedEntry: QualificationRecordDetail = {
+      status: (existingObj.status || (resolveModuleStatus(moduleId, memberQualMap).status)),
+      remarks: remarksInput.trim(),
+      developmentNotes: existingObj.developmentNotes || '',
+      certifiedBy: existingObj.certifiedBy || `${currentUser.rank} ${currentUser.username}`,
+      certifiedDate: existingObj.certifiedDate || new Date().toISOString().split('T')[0]
+    };
+
+    const updated = { ...memberQualMap, [moduleId]: updatedEntry };
+    onUpdateMemberQualifications(selectedMemberId, updated);
+    setEditingRemarksModuleId(null);
+    setActionNotice(`Evaluation remarks recorded for ${selectedModule.code}`);
+    setTimeout(() => setActionNotice(null), 3000);
+  };
+
+  // Save Development Notes
+  const handleSaveDevNotes = (moduleId: string) => {
+    tacticalAudio.playSuccessBeep();
+    const existing = memberQualMap[moduleId];
+    const existingObj: Partial<QualificationRecordDetail> = typeof existing === 'object' && existing !== null ? existing : {};
+    
+    const updatedEntry: QualificationRecordDetail = {
+      status: (existingObj.status || (resolveModuleStatus(moduleId, memberQualMap).status)),
+      remarks: existingObj.remarks || '',
+      developmentNotes: devNotesInput.trim(),
+      certifiedBy: existingObj.certifiedBy || `${currentUser.rank} ${currentUser.username}`,
+      certifiedDate: existingObj.certifiedDate || new Date().toISOString().split('T')[0]
+    };
+
+    const updated = { ...memberQualMap, [moduleId]: updatedEntry };
+    onUpdateMemberQualifications(selectedMemberId, updated);
+    setEditingDevNotesModuleId(null);
+    setActionNotice(`Development notes updated for ${selectedModule.code}`);
+    setTimeout(() => setActionNotice(null), 3000);
+  };
+
+  // Assessment modal save (both remarks & dev notes)
+  const handleSaveAssessmentModal = () => {
+    if (!assessmentModalModule) return;
+    tacticalAudio.playSuccessBeep();
+    const existing = memberQualMap[assessmentModalModule.id];
+    const existingObj: Partial<QualificationRecordDetail> = typeof existing === 'object' && existing !== null ? existing : {};
+    
+    const updatedEntry: QualificationRecordDetail = {
+      status: existingObj.status || resolveModuleStatus(assessmentModalModule.id, memberQualMap).status,
+      remarks: assessmentRemarks.trim(),
+      developmentNotes: assessmentDevNotes.trim(),
+      certifiedBy: existingObj.certifiedBy || `${currentUser.rank} ${currentUser.username}`,
+      certifiedDate: existingObj.certifiedDate || new Date().toISOString().split('T')[0]
+    };
+
+    const updated = { ...memberQualMap, [assessmentModalModule.id]: updatedEntry };
+    onUpdateMemberQualifications(selectedMemberId, updated);
+    setAssessmentModalModule(null);
+    setActionNotice(`Assessment remarks & notes saved for ${assessmentModalModule.code}`);
+    setTimeout(() => setActionNotice(null), 3000);
   };
 
   // Open manual popup
@@ -148,7 +327,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
       <div className="fixed inset-0 bg-gradient-to-b from-black/90 via-[#0a0d0b]/95 to-black pointer-events-none" />
 
       {/* Main Tactical Academy Screen Frame matching the Screenshot */}
-      <div className="w-full max-w-7xl h-full max-h-[92vh] bg-[#0c0f0d] border border-[#f2c14e]/30 shadow-2xl flex flex-col relative z-10 overflow-hidden font-mono">
+      <div className="w-full max-w-7xl h-full max-h-[94vh] bg-[#0c0f0d] border border-[#f2c14e]/30 shadow-2xl flex flex-col relative z-10 overflow-hidden font-mono">
         
         {/* =========================================================================
             TOP HEADER BAR (MATCHING SCREENSHOT EXACTLY)
@@ -238,7 +417,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
             MAIN 3-PANEL BODY:
             1. Left Sidebar Tabs (DASHBOARD, QUALIFICATIONS, ASSESSMENT, RECORDS, EXPORT)
             2. Middle Column: QUALIFICATION STRUCTURE (Scrollable Modules 01.1 - 07.1)
-            3. Right Column: Detailed View & Action Manuals
+            3. Right Column: Detailed View, Prerequisites with Missing, Remarks & Notes
            ========================================================================= */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           
@@ -321,22 +500,36 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
               
               {/* Middle Column: QUALIFICATION STRUCTURE List (Matches Screenshot) */}
               <div className="w-full lg:w-[380px] border-b lg:border-b-0 lg:border-r border-stone-800 p-4 flex flex-col overflow-hidden bg-[#090d0b]">
-                <h2 className="text-xs font-bold tracking-widest text-[#f2c14e] uppercase pb-2 mb-2 border-b border-stone-800">
-                  QUALIFICATION STRUCTURE
-                </h2>
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-800 gap-1 flex-wrap">
+                  <h2 className="text-xs font-bold tracking-widest text-[#f2c14e] uppercase shrink-0">
+                    QUALIFICATION STRUCTURE
+                  </h2>
+                  {isInstructor && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={handleUnlockAll}
+                        className="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-black text-[10px] font-bold uppercase transition flex items-center gap-1 cursor-pointer shadow-xs"
+                        title="فك قفل جميع المؤهلات للمقاتل دفعة واحدة"
+                      >
+                        <Unlock className="w-2.5 h-2.5 stroke-[2.5]" />
+                        <span>شيل Lock عن الكل</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                   {QUALIFICATION_MODULES.map(module => {
-                    const status = memberQualMap[module.id] || (module.id === '01.1' ? 'available' : 'locked');
+                    const resolved = resolveModuleStatus(module.id, memberQualMap);
                     const isSelected = module.id === selectedModuleId;
 
                     let statusLabel = 'Locked';
                     let statusColor = 'text-stone-500';
 
-                    if (status === 'completed') {
+                    if (resolved.isCompleted) {
                       statusLabel = 'Certified ✓';
                       statusColor = 'text-emerald-400 font-bold';
-                    } else if (status === 'available') {
+                    } else if (resolved.isAvailable) {
                       statusLabel = 'Available';
                       statusColor = 'text-[#f2c14e] font-bold';
                     }
@@ -347,13 +540,15 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                         onClick={() => {
                           tacticalAudio.playRadioClick();
                           setSelectedModuleId(module.id);
+                          setEditingRemarksModuleId(null);
+                          setEditingDevNotesModuleId(null);
                         }}
                         className={`w-full py-1.5 px-2 text-left text-xs transition cursor-pointer flex items-center justify-between rounded ${
                           isSelected
                             ? 'bg-[#3b361a] text-[#f2c14e] font-bold border-l-2 border-[#f2c14e]'
-                            : status === 'available'
+                            : resolved.isAvailable
                             ? 'hover:bg-stone-900 text-stone-200'
-                            : status === 'completed'
+                            : resolved.isCompleted
                             ? 'hover:bg-stone-900 text-emerald-200'
                             : 'hover:bg-stone-900/40 text-stone-400'
                         }`}
@@ -371,7 +566,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
               </div>
 
               {/* Right Column: Detailed View of Selected Module (Matches Screenshot) */}
-              <div className="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col justify-between bg-[#080b09]">
+              <div className="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col justify-between bg-[#080b09] space-y-6">
                 <div className="space-y-4">
                   {/* Title & Metadata Header */}
                   <div>
@@ -387,17 +582,31 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                   </div>
 
                   {/* STATUS */}
-                  <div>
-                    <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block">
-                      STATUS:
-                    </span>
-                    <span className={`text-xs font-bold uppercase ${
-                      currentModuleStatus === 'completed' ? 'text-emerald-400' :
-                      currentModuleStatus === 'available' ? 'text-[#f2c14e]' : 'text-stone-500'
-                    }`}>
-                      {currentModuleStatus === 'completed' ? 'Certified (Completed) ✓' :
-                       currentModuleStatus === 'available' ? 'Available' : 'Locked'}
-                    </span>
+                  <div className="flex items-center flex-wrap gap-2.5">
+                    <div>
+                      <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block">
+                        STATUS:
+                      </span>
+                      <span className={`text-xs font-bold uppercase ${
+                        selectedResolved.isCompleted ? 'text-emerald-400' :
+                        selectedResolved.isAvailable ? 'text-[#f2c14e]' : 'text-stone-500'
+                      }`}>
+                        {selectedResolved.isCompleted ? 'Certified (Completed) ✓' :
+                         selectedResolved.isAvailable ? 'Available' : 'Locked'}
+                      </span>
+                    </div>
+
+                    {/* Dedicated Button to Remove Lock (زرار شيل Lock) */}
+                    {isInstructor && selectedResolved.isLocked && (
+                      <button
+                        onClick={() => handleSetStatus('available')}
+                        className="px-3 py-1 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-bold uppercase rounded shadow-sm flex items-center gap-1.5 cursor-pointer transition animate-pulse hover:animate-none"
+                        title="شيل Lock وفك القفل عن هذا المؤهل فوراً"
+                      >
+                        <Unlock className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>شيل Lock (فك القفل)</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* AWARD */}
@@ -413,7 +622,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                     </p>
                   </div>
 
-                  {/* PREREQUISITES */}
+                  {/* PREREQUISITES - WITH DYNAMIC MISSING ALERT (Exact Match to ARMA III Screenshot!) */}
                   <div>
                     <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block">
                       PREREQUISITES
@@ -421,6 +630,21 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                     <p className="text-xs text-stone-300">
                       {selectedModule.prerequisites} ({selectedModule.prerequisitesAr})
                     </p>
+                    {/* Orange Missing alert as shown in screenshots 3 & 4 */}
+                    {selectedResolved.isLocked && selectedResolved.missingPrerequisites.length > 0 && (
+                      <div className="text-xs font-bold text-[#f97316] mt-1.5 flex items-start gap-1.5">
+                        <span className="shrink-0">Missing:</span>
+                        <span>
+                          {selectedResolved.missingPrerequisites.map(p => `${p.code} ${p.title}`).join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {selectedResolved.isAvailable && selectedModule.prerequisiteIds.length > 0 && (
+                      <div className="text-[11px] font-bold text-emerald-400 mt-1.5 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>All prerequisites satisfied — Available for assessment</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* CRITICAL TASKS (Bullet points matching screenshot) */}
@@ -452,10 +676,274 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                       ))}
                     </ul>
                   </div>
+
+                  {/* =========================================================================
+                      SEPARATE REMARKS & DEVELOPMENT NOTES CONTAINERS (USER REQUIREMENT)
+                      - Instructors and Commander Dragon have write/edit access
+                      - Members have read-only view access
+                     ========================================================================= */}
+                  <div className="pt-3 border-t border-stone-800 space-y-3">
+                    
+                    {/* CONTAINER 1: EVALUATION REMARKS */}
+                    <div className="rounded-xl p-3.5 bg-black/70 border border-stone-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-[#f2c14e]" />
+                          <span className="text-xs font-bold text-[#f2c14e] uppercase tracking-wider">
+                            EVALUATION REMARKS · ملاحظات التقييم الميداني
+                          </span>
+                        </div>
+                        {isInstructor && editingRemarksModuleId !== selectedModule.id && (
+                          <button
+                            onClick={() => {
+                              tacticalAudio.playRadioClick();
+                              setEditingRemarksModuleId(selectedModule.id);
+                              setRemarksInput(currentRemarks);
+                            }}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-stone-800 hover:bg-stone-700 text-[#f2c14e] border border-[#f2c14e]/30 transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>{currentRemarks ? 'Edit Remarks' : '+ Add Remarks'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {editingRemarksModuleId === selectedModule.id ? (
+                        <div className="space-y-2 pt-1">
+                          <textarea
+                            value={remarksInput}
+                            onChange={(e) => setRemarksInput(e.target.value)}
+                            rows={3}
+                            placeholder="Enter formal instructor assessment remarks, tactical performance review, and pass criteria..."
+                            className="w-full p-2.5 bg-stone-900 border border-[#f2c14e]/40 rounded text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[#f2c14e]"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setEditingRemarksModuleId(null)}
+                              className="px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold uppercase rounded cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleSaveRemarks(selectedModule.id)}
+                              className="px-3 py-1 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-bold uppercase rounded flex items-center gap-1 cursor-pointer"
+                            >
+                              <Save className="w-3 h-3" />
+                              <span>Save Remarks</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          {currentRemarks ? (
+                            <div className="space-y-1.5">
+                              <p className="text-xs text-stone-200 leading-relaxed bg-[#111613] p-2.5 rounded border-l-2 border-[#f2c14e] font-sans">
+                                "{currentRemarks}"
+                              </p>
+                              <div className="flex items-center justify-between text-[10px] text-stone-500">
+                                <span>Evaluator: <strong className="text-stone-300">{currentCertifier || 'Sa\'ka Command Instructor'}</strong></span>
+                                <span>{currentDate || 'Certified Record'}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-stone-500 italic">
+                              No evaluation remarks recorded yet for this qualification module.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CONTAINER 2: DEVELOPMENT NOTES */}
+                    <div className="rounded-xl p-3.5 bg-black/70 border border-stone-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-cyan-400" />
+                          <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                            DEVELOPMENT NOTES · ملاحظات التطوير والتوجيه
+                          </span>
+                        </div>
+                        {isInstructor && editingDevNotesModuleId !== selectedModule.id && (
+                          <button
+                            onClick={() => {
+                              tacticalAudio.playRadioClick();
+                              setEditingDevNotesModuleId(selectedModule.id);
+                              setDevNotesInput(currentDevNotes);
+                            }}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-stone-800 hover:bg-stone-700 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>{currentDevNotes ? 'Edit Notes' : '+ Add Notes'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {editingDevNotesModuleId === selectedModule.id ? (
+                        <div className="space-y-2 pt-1">
+                          <textarea
+                            value={devNotesInput}
+                            onChange={(e) => setDevNotesInput(e.target.value)}
+                            rows={3}
+                            placeholder="Enter developmental guidance, drills to improve (e.g. pace count, magazine drills, night re-zero)..."
+                            className="w-full p-2.5 bg-stone-900 border border-cyan-500/40 rounded text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-cyan-400"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setEditingDevNotesModuleId(null)}
+                              className="px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold uppercase rounded cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleSaveDevNotes(selectedModule.id)}
+                              className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold uppercase rounded flex items-center gap-1 cursor-pointer"
+                            >
+                              <Save className="w-3 h-3" />
+                              <span>Save Notes</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          {currentDevNotes ? (
+                            <div className="space-y-1.5">
+                              <p className="text-xs text-stone-200 leading-relaxed bg-[#0c1417] p-2.5 rounded border-l-2 border-cyan-500 font-sans">
+                                "{currentDevNotes}"
+                              </p>
+                              <span className="text-[10px] text-stone-500 block">
+                                Directives for operator skill progression & training lane focus.
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-stone-500 italic">
+                              No developmental notes or guidance logged for this qualification yet.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Bottom Action Buttons (Matching Screenshot) */}
-                <div className="pt-6 space-y-2.5">
+                {/* Bottom Action Buttons & Training Booking Integration */}
+                <div className="pt-4 space-y-3">
+                  {/* TRAINING SESSION SCHEDULING CTA (USER REQUIREMENT) */}
+                  <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#1a1608] via-[#0d120e] to-black border-2 border-[#f2c14e]/40 shadow-lg shadow-[#f2c14e]/10 space-y-2.5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[#f2c14e]/20 border border-[#f2c14e]/50 flex items-center justify-center text-[#f2c14e]">
+                          <CalendarPlus className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-stone-100 uppercase tracking-wide block">
+                            TRAINING & ASSESSMENT BOOKING · مواعيد حجز التدريب
+                          </span>
+                          <span className="text-[10px] text-stone-400">
+                            Book qualification slot with tactical date, companion invite & Google Calendar sync
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          tacticalAudio.playRadioClick();
+                          setShowBookingModal(true);
+                        }}
+                        className="px-3.5 py-2 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-lg shadow-md shadow-[#f2c14e]/30 flex items-center gap-2 cursor-pointer transition active:scale-95"
+                      >
+                        <Calendar className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Schedule Assessment Session / حجز موعد</span>
+                      </button>
+                    </div>
+
+                    {/* Display any booked sessions for this module */}
+                    {(() => {
+                      const moduleBookings = trainingBookings.filter(b => b.qualificationId === selectedModule.id);
+                      if (moduleBookings.length === 0) {
+                        return (
+                          <div className="text-[11px] text-stone-500 italic bg-black/40 px-3 py-2 rounded border border-stone-900 flex items-center justify-between">
+                            <span>No upcoming training sessions scheduled for this module yet.</span>
+                            <span className="text-[#f2c14e]/70 font-mono text-[10px]">Ready for appointment</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] font-mono text-[#f2c14e] uppercase tracking-wider block">
+                            Scheduled Sessions for this Module ({moduleBookings.length}):
+                          </span>
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                            {moduleBookings.map(booking => {
+                              const isConfirmed = booking.status === 'confirmed';
+                              const isRejected = booking.status === 'rejected';
+                              const googleCalUrl = generateGoogleCalendarUrl(booking);
+                              const gmailUrl = generateGmailInviteUrl(booking);
+
+                              return (
+                                <div
+                                  key={booking.id}
+                                  className="p-2.5 rounded-lg bg-black/70 border border-stone-800 flex items-center justify-between flex-wrap gap-2 text-xs"
+                                >
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono text-stone-200 font-bold">
+                                        📅 {formatBookingDate(booking.year, booking.month, booking.day)}
+                                      </span>
+                                      <span className="text-stone-400 text-[11px] font-mono">
+                                        · {booking.slotLabel}
+                                      </span>
+                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                                        isConfirmed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                                        isRejected ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
+                                        'bg-amber-500/20 text-[#f2c14e] border border-amber-500/40 animate-pulse'
+                                      }`}>
+                                        {booking.status}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-stone-400 flex items-center gap-2">
+                                      <span>Candidate: <strong className="text-stone-200">{booking.candidateRank} {booking.candidateName}</strong></span>
+                                      {booking.companionEmail && (
+                                        <span className="text-amber-400/90 flex items-center gap-1">
+                                          <Mail className="w-3 h-3 inline" />
+                                          Companion: {booking.companionName || booking.companionEmail}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <a
+                                      href={googleCalUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-2 py-1 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-[10px] font-mono flex items-center gap-1 transition"
+                                      title="Open in Google Calendar"
+                                    >
+                                      <ExternalLink className="w-3 h-3 text-[#f2c14e]" />
+                                      <span>Google Cal</span>
+                                    </a>
+                                    {booking.companionEmail && (
+                                      <a
+                                        href={gmailUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-[10px] font-mono flex items-center gap-1 transition"
+                                        title="Send Gmail Invite"
+                                      >
+                                        <Mail className="w-3 h-3 text-red-400" />
+                                        <span>Gmail Invite</span>
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
                   {/* Instructor Certification Control Bar */}
                   {isInstructor && (
                     <div className="p-3 rounded-lg bg-stone-900 border border-[#f2c14e]/30 flex items-center justify-between flex-wrap gap-2">
@@ -475,16 +963,15 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
                         <button
                           onClick={() => handleSetStatus('available')}
-                          className="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-black text-xs font-bold uppercase transition cursor-pointer"
+                          className={`px-3 py-1.5 rounded text-xs font-bold uppercase transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                            selectedResolved.isAvailable 
+                              ? 'bg-amber-400 text-black ring-2 ring-[#f2c14e]' 
+                              : 'bg-amber-600 hover:bg-amber-500 text-black'
+                          }`}
+                          title="شيل Lock وفك القفل عن هذا المؤهل فوراً"
                         >
-                          Make Available (إتاحة)
-                        </button>
-
-                        <button
-                          onClick={() => handleSetStatus('locked')}
-                          className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold uppercase transition cursor-pointer"
-                        >
-                          Lock (قفل)
+                          <Unlock className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>شيل Lock / Remove Lock</span>
                         </button>
                       </div>
                     </div>
@@ -610,7 +1097,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
           {/* ASSESSMENT TAB */}
           {activeTab === 'ASSESSMENT' && (
             <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#080b09]">
-              <div className="flex items-center justify-between pb-3 border-b border-stone-800">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-800 flex-wrap gap-2">
                 <div>
                   <h2 className="text-lg font-bold text-stone-100 uppercase">
                     Operator Assessment & Certification Matrix
@@ -619,64 +1106,147 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                     Inspecting Operator: <strong className="text-[#f2c14e]">{targetName}</strong> ({targetRank}) — {targetServiceId}
                   </p>
                 </div>
+
+                {isInstructor && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleUnlockAll}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-black text-xs font-bold uppercase rounded transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                      title="فك قفل جميع المؤهلات للمقاتل دفعة واحدة"
+                    >
+                      <Unlock className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>شيل Lock عن الكل (Unlock All)</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {QUALIFICATION_MODULES.map(m => {
-                  const status = memberQualMap[m.id] || (m.id === '01.1' ? 'available' : 'locked');
+                  const resolved = resolveModuleStatus(m.id, memberQualMap);
+                  const entryRemarks = getEntryRemarks(memberQualMap[m.id]);
+                  const entryDevNotes = getEntryDevNotes(memberQualMap[m.id]);
+
                   return (
                     <div 
                       key={m.id}
-                      className="p-3 rounded-xl bg-black/50 border border-stone-800 flex items-center justify-between flex-wrap gap-2 text-xs"
+                      className="p-3.5 rounded-xl bg-black/50 border border-stone-800 space-y-2"
                     >
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-stone-200">
-                          {m.code} {m.title}
-                        </span>
-                        <span className="text-[10px] text-stone-500 block">
-                          {m.category} · {m.award}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                          status === 'completed' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' :
-                          status === 'available' ? 'bg-amber-950 text-[#f2c14e] border-amber-500/40' :
-                          'bg-stone-900 text-stone-500 border-stone-800'
-                        }`}>
-                          {status === 'completed' ? 'Certified ✓' : status === 'available' ? 'Available' : 'Locked'}
-                        </span>
-
-                        {isInstructor && (
-                          <div className="flex items-center gap-1">
-                            {status !== 'completed' && (
-                              <button
-                                onClick={() => {
-                                  tacticalAudio.playSuccessBeep();
-                                  const updated: Record<string, QualificationStatus> = { ...memberQualMap, [m.id]: 'completed' };
-                                  onUpdateMemberQualifications(selectedMemberId, updated);
-                                }}
-                                className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold uppercase transition cursor-pointer"
-                              >
-                                Certify
-                              </button>
-                            )}
-
-                            {status === 'locked' && (
-                              <button
-                                onClick={() => {
-                                  tacticalAudio.playRadioClick();
-                                  const updated: Record<string, QualificationStatus> = { ...memberQualMap, [m.id]: 'available' };
-                                  onUpdateMemberQualifications(selectedMemberId, updated);
-                                }}
-                                className="px-2 py-0.5 bg-stone-800 hover:bg-stone-700 text-[#f2c14e] rounded text-[10px] font-bold uppercase transition cursor-pointer"
-                              >
-                                Unlock
-                              </button>
-                            )}
+                      <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-stone-200">
+                              {m.code} {m.title}
+                            </span>
+                            <span className="text-[11px] text-[#f2c14e] font-arabic">
+                              ({m.titleAr})
+                            </span>
                           </div>
-                        )}
+                          <span className="text-[10px] text-stone-500 block">
+                            {m.category} · {m.award}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                            resolved.isCompleted ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' :
+                            resolved.isAvailable ? 'bg-amber-950 text-[#f2c14e] border-amber-500/40' :
+                            'bg-stone-900 text-stone-500 border-stone-800'
+                          }`}>
+                            {resolved.isCompleted ? 'Certified ✓' : resolved.isAvailable ? 'Available' : 'Locked'}
+                          </span>
+
+                          {/* Quick Remarks & Notes button */}
+                          <button
+                            onClick={() => {
+                              tacticalAudio.playRadioClick();
+                              setAssessmentModalModule(m);
+                              setAssessmentRemarks(entryRemarks);
+                              setAssessmentDevNotes(entryDevNotes);
+                            }}
+                            className="px-2 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-[#f2c14e] rounded text-[10px] font-bold uppercase transition flex items-center gap-1 cursor-pointer border border-stone-700"
+                          >
+                            <MessageSquare className="w-3 h-3 text-[#f2c14e]" />
+                            <span>Remarks & Notes</span>
+                          </button>
+
+                          {isInstructor && (
+                            <div className="flex items-center gap-1">
+                              {resolved.isLocked && (
+                                <button
+                                  onClick={() => {
+                                    tacticalAudio.playSuccessBeep();
+                                    const existing = memberQualMap[m.id];
+                                    const existingObj: Partial<QualificationRecordDetail> = typeof existing === 'object' && existing !== null ? existing : {};
+                                    const updated: Record<string, QualificationEntry> = { ...memberQualMap, [m.id]: { ...existingObj, status: 'available' as QualificationStatus } };
+                                    onUpdateMemberQualifications(selectedMemberId, updated);
+                                    setActionNotice(`🔓 تم فك القفل (شيل Lock) عن ${m.code}`);
+                                    setTimeout(() => setActionNotice(null), 3000);
+                                  }}
+                                  className="px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-black rounded text-[10px] font-bold uppercase transition flex items-center gap-1 cursor-pointer"
+                                  title="شيل Lock وفك القفل عن هذا المؤهل"
+                                >
+                                  <Unlock className="w-2.5 h-2.5 stroke-[2.5]" />
+                                  <span>شيل Lock</span>
+                                </button>
+                              )}
+
+                              {!resolved.isCompleted && (
+                                <button
+                                  onClick={() => {
+                                    tacticalAudio.playSuccessBeep();
+                                    const existing = memberQualMap[m.id];
+                                    const existingObj: Partial<QualificationRecordDetail> = typeof existing === 'object' && existing !== null ? existing : {};
+                                    const updatedEntry: QualificationRecordDetail = {
+                                      ...existingObj,
+                                      status: 'completed',
+                                      remarks: existingObj.remarks || 'Standard qualification requirements verified and certified.',
+                                      certifiedBy: `${currentUser.rank} ${currentUser.username}`,
+                                      certifiedDate: new Date().toISOString().split('T')[0]
+                                    };
+                                    const updated = { ...memberQualMap, [m.id]: updatedEntry };
+                                    onUpdateMemberQualifications(selectedMemberId, updated);
+                                    setActionNotice(`Certified ${m.code} for ${targetName}`);
+                                    setTimeout(() => setActionNotice(null), 3000);
+                                  }}
+                                  className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold uppercase transition cursor-pointer"
+                                >
+                                  Certify
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Missing prerequisites banner if locked */}
+                      {resolved.isLocked && resolved.missingPrerequisites.length > 0 && (
+                        <div className="text-[11px] text-[#f97316] font-bold">
+                          Missing: {resolved.missingPrerequisites.map(p => `${p.code} ${p.title}`).join(', ')}
+                        </div>
+                      )}
+
+                      {/* Display Remarks & Dev Notes preview if present */}
+                      {(entryRemarks || entryDevNotes) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-stone-800/80 text-[11px]">
+                          {entryRemarks && (
+                            <div className="p-2 rounded bg-black/40 border border-stone-800/80">
+                              <span className="text-[10px] font-bold text-[#f2c14e] uppercase block mb-0.5">
+                                Remarks:
+                              </span>
+                              <span className="text-stone-300 font-sans">{entryRemarks}</span>
+                            </div>
+                          )}
+                          {entryDevNotes && (
+                            <div className="p-2 rounded bg-black/40 border border-stone-800/80">
+                              <span className="text-[10px] font-bold text-cyan-400 uppercase block mb-0.5">
+                                Development Notes:
+                              </span>
+                              <span className="text-stone-300 font-sans">{entryDevNotes}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -700,7 +1270,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                 {accounts.map(acc => {
                   const accMap = acc.qualifications || (acc.username.toLowerCase() === 'dragon' 
                     ? Object.fromEntries(QUALIFICATION_MODULES.map(m => [m.id, 'completed']))
-                    : { '01.1': 'completed', '01.2': 'available' });
+                    : { '01.1': 'completed' });
                   const accStats = calculateMemberQualifications(accMap);
 
                   return (
@@ -752,7 +1322,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
             </div>
           )}
 
-          {/* EXPORT TAB */}
+          {/* EXPORT TAB - NOW INCLUDES REMARKS AND DEVELOPMENT NOTES */}
           {activeTab === 'EXPORT' && (
             <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#080b09]">
               <div className="pb-3 border-b border-stone-800">
@@ -760,11 +1330,11 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                   Export Sa'ka Military Passport Dossier
                 </h2>
                 <p className="text-xs text-stone-400">
-                  Download or copy certified qualifications for {targetName} ({targetServiceId}).
+                  Download or copy certified qualifications, evaluation remarks, and development notes for {targetName} ({targetServiceId}).
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-black/80 border border-[#f2c14e]/30 font-mono text-xs text-stone-300 space-y-2 whitespace-pre-wrap select-text">
+              <div className="p-4 rounded-xl bg-black/80 border border-[#f2c14e]/30 font-mono text-xs text-stone-300 space-y-2 whitespace-pre-wrap select-text leading-relaxed">
                 {`========================================================================
 EGYPTIAN ARMED FORCES · THUNDERBOLT SPECIAL OPERATIONS COMMAND
 SA'KA MILITARY QUALIFICATION PASSPORT & TRAINING RECORD
@@ -776,13 +1346,22 @@ STEAM 64-BIT UID  : ${targetSteamUid}
 CERTIFICATION LVL : ${stats.completed} / ${stats.total} Modules (${stats.percent}% Operational Readiness)
 COMMAND AUTHORITY : Under Maj. Gen. Dragon [MG | لواء أ.ح]
 
-CERTIFIED SPECIALTIES:
-${QUALIFICATION_MODULES.filter(m => (memberQualMap[m.id] || (m.id === '01.1' ? 'available' : 'locked')) === 'completed')
-  .map(m => `[✓] ${m.code} ${m.title} — ${m.award}`)
-  .join('\n') || 'None certified yet.'}
+CERTIFIED SPECIALTIES & EVALUATION REMARKS:
+${QUALIFICATION_MODULES.filter(m => resolveModuleStatus(m.id, memberQualMap).isCompleted)
+  .map(m => {
+    const rem = getEntryRemarks(memberQualMap[m.id]);
+    const dev = getEntryDevNotes(memberQualMap[m.id]);
+    const cert = getEntryCertifier(memberQualMap[m.id]);
+    const d = getEntryDate(memberQualMap[m.id]);
+    let text = `[✓] ${m.code} ${m.title} — ${m.award}`;
+    if (rem) text += `\n    Evaluation Remarks: "${rem}" (${cert || 'Instructor'}, ${d || 'Active'})`;
+    if (dev) text += `\n    Development Notes : "${dev}"`;
+    return text;
+  })
+  .join('\n\n') || 'None certified yet.'}
 
-PENDING / AVAILABLE MODULES:
-${QUALIFICATION_MODULES.filter(m => (memberQualMap[m.id] || (m.id === '01.1' ? 'available' : 'locked')) === 'available')
+AVAILABLE FOR ASSESSMENT:
+${QUALIFICATION_MODULES.filter(m => resolveModuleStatus(m.id, memberQualMap).isAvailable)
   .map(m => `[!] ${m.code} ${m.title}`)
   .join('\n') || 'None currently available.'}
 
@@ -794,7 +1373,28 @@ SECURITY VERIFICATION: PROJECT SA'KA · SERVER-VERIFIED CLASSIFIED RECORD
                 <button
                   onClick={() => {
                     tacticalAudio.playSuccessBeep();
-                    const exportText = `THUNDERBOLT UNIT QUALIFICATION RECORD\nOperator: ${targetName} (${targetRank})\nService ID: ${targetServiceId}\nSteam UID: ${targetSteamUid}\nCertified: ${stats.completed}/${stats.total} (${stats.percent}%)`;
+                    const exportText = `========================================================================
+EGYPTIAN ARMED FORCES · THUNDERBOLT SPECIAL OPERATIONS COMMAND
+SA'KA MILITARY QUALIFICATION PASSPORT & TRAINING RECORD
+========================================================================
+OPERATOR CALLSIGN : ${targetName.toUpperCase()}
+MILITARY RANK     : ${targetRank}
+UNIT SERVICE ID   : ${targetServiceId}
+STEAM 64-BIT UID  : ${targetSteamUid}
+CERTIFICATION LVL : ${stats.completed} / ${stats.total} Modules (${stats.percent}% Operational Readiness)
+COMMAND AUTHORITY : Under Maj. Gen. Dragon [MG | لواء أ.ح]
+
+CERTIFIED SPECIALTIES & EVALUATION REMARKS:
+${QUALIFICATION_MODULES.filter(m => resolveModuleStatus(m.id, memberQualMap).isCompleted)
+  .map(m => {
+    const rem = getEntryRemarks(memberQualMap[m.id]);
+    const dev = getEntryDevNotes(memberQualMap[m.id]);
+    let text = `[✓] ${m.code} ${m.title} — ${m.award}`;
+    if (rem) text += `\n    Remarks: "${rem}"`;
+    if (dev) text += `\n    Development Notes: "${dev}"`;
+    return text;
+  })
+  .join('\n\n') || 'None certified yet.'}`;
                     navigator.clipboard.writeText(exportText);
                     setActionNotice('Passport dossier copied to clipboard.');
                     setTimeout(() => setActionNotice(null), 2500);
@@ -822,6 +1422,88 @@ SECURITY VERIFICATION: PROJECT SA'KA · SERVER-VERIFIED CLASSIFIED RECORD
           </span>
         </footer>
       </div>
+
+      {/* Assessment Inline Modal for editing Remarks & Dev Notes */}
+      {assessmentModalModule && (
+        <div className="fixed inset-0 z-60 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-[#0e1411] border border-[#f2c14e]/40 rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-stone-800 pb-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-[#f2c14e]" />
+                <h3 className="font-bold text-sm text-stone-100 uppercase tracking-wide">
+                  {assessmentModalModule.code} {assessmentModalModule.title} — Evaluation & Notes
+                </h3>
+              </div>
+              <button
+                onClick={() => setAssessmentModalModule(null)}
+                className="text-stone-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#f2c14e] uppercase flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Evaluation Remarks (ملاحظات التقييم)</span>
+                </label>
+                {isInstructor ? (
+                  <textarea
+                    value={assessmentRemarks}
+                    onChange={(e) => setAssessmentRemarks(e.target.value)}
+                    rows={3}
+                    placeholder="Enter instructor remarks, performance observations, and scores..."
+                    className="w-full p-2.5 bg-stone-900 border border-[#f2c14e]/30 rounded text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[#f2c14e]"
+                  />
+                ) : (
+                  <p className="text-xs text-stone-300 p-2.5 bg-black/40 rounded border border-stone-800 font-sans">
+                    {assessmentRemarks || 'No evaluation remarks recorded.'}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-cyan-400 uppercase flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>Development Notes (ملاحظات التطوير والتوجيه)</span>
+                </label>
+                {isInstructor ? (
+                  <textarea
+                    value={assessmentDevNotes}
+                    onChange={(e) => setAssessmentDevNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Enter areas to improve, specific weapon drills, tactical corrections..."
+                    className="w-full p-2.5 bg-stone-900 border border-cyan-500/30 rounded text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-cyan-400"
+                  />
+                ) : (
+                  <p className="text-xs text-stone-300 p-2.5 bg-black/40 rounded border border-stone-800 font-sans">
+                    {assessmentDevNotes || 'No development notes recorded.'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <button
+                onClick={() => setAssessmentModalModule(null)}
+                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold uppercase rounded cursor-pointer"
+              >
+                Close
+              </button>
+              {isInstructor && (
+                <button
+                  onClick={handleSaveAssessmentModal}
+                  className="px-4 py-2 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-bold uppercase tracking-wider rounded cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Record</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manual Popup Dossier */}
       {activeManual && (
@@ -856,6 +1538,23 @@ SECURITY VERIFICATION: PROJECT SA'KA · SERVER-VERIFIED CLASSIFIED RECORD
             </div>
           </div>
         </div>
+      )}
+
+      {/* Training Booking Modal (Calendar & Gmail Invites) */}
+      {showBookingModal && (
+        <TrainingBookingModal
+          isOpen={showBookingModal}
+          onClose={() => setShowBookingModal(false)}
+          module={selectedModule}
+          currentUser={currentUser}
+          onSaveBooking={(booking) => {
+            if (onSaveTrainingBooking) {
+              onSaveTrainingBooking(booking);
+            }
+            setActionNotice(`Training session for ${selectedModule.code} submitted for commander clearance!`);
+            setTimeout(() => setActionNotice(null), 4000);
+          }}
+        />
       )}
     </div>
   );

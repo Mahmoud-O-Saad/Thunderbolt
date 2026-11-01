@@ -1,0 +1,78 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isInstructor() {
+      return isSignedIn() && (
+        request.auth.token.email == 'mahmoudosama3003@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'instructor' &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approvalStatus == 'approved')
+      );
+    }
+
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.username is string && data.username.size() <= 64 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.role in ['instructor', 'member'] &&
+             data.approvalStatus in ['pending', 'approved', 'rejected'];
+    }
+
+    match /users/{userId} {
+      // Signed in operators can view profiles and squad roster
+      allow get: if isSignedIn() && (isOwner(userId) || isInstructor());
+      allow list: if isSignedIn();
+
+      // Recruits can sign up as pending members; instructors can pre-provision approved accounts
+      allow create: if isSignedIn() && isValidUser(request.resource.data) && (
+        (isOwner(userId) && request.resource.data.approvalStatus == 'pending' && request.resource.data.role == 'member') ||
+        isInstructor()
+      );
+
+      // Instructors can approve/reject/modify rank; users can only update personal identity fields (never role or approvalStatus)
+      allow update: if isSignedIn() && isValidUser(request.resource.data) && (
+        isInstructor() ||
+        (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['steamUid', 'unitServiceId', 'username', 'qualifications']))
+      );
+
+      allow delete: if isInstructor();
+    }
+
+    match /trainingBookings/{bookingId} {
+      // Signed-in operators and instructors can read training bookings
+      allow read: if isSignedIn();
+
+      // Operators can create a booking for themselves as pending
+      allow create: if isSignedIn() && (
+        request.resource.data.candidateId == request.auth.uid ||
+        isInstructor()
+      );
+
+      // Instructors can approve/reject; operators can edit their notes/companion
+      allow update: if isSignedIn() && (
+        isInstructor() ||
+        (request.resource.data.candidateId == request.auth.uid && request.resource.data.status == resource.data.status)
+      );
+
+      allow delete: if isSignedIn() && (
+        isInstructor() ||
+        resource.data.candidateId == request.auth.uid
+      );
+    }
+  }
+}

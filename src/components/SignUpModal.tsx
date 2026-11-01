@@ -16,6 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { tacticalAudio } from '../utils/audio';
+import { signInWithGooglePopup } from '../utils/firebase';
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -58,9 +59,26 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleLinkGoogle = () => {
+  const handleLinkGoogle = async () => {
     tacticalAudio.playRadioClick();
-    setShowGoogleModal(true);
+    try {
+      const fbUser = await signInWithGooglePopup();
+      if (fbUser && fbUser.email) {
+        tacticalAudio.playSuccessBeep();
+        const cleanEmail = fbUser.email.toLowerCase();
+        setLinkedGmail(cleanEmail);
+        setEmail(cleanEmail);
+        setAuthProvider('google');
+        if (!username.trim()) {
+          const suggestedName = fbUser.displayName || cleanEmail.split('@')[0].replace(/[0-9_.-]/g, '');
+          const capitalized = suggestedName ? suggestedName.charAt(0).toUpperCase() + suggestedName.slice(1).toLowerCase() : 'Mahmoud';
+          setUsername(capitalized || 'Mahmoud');
+        }
+        return;
+      }
+    } catch {
+      // Ignore
+    }
   };
 
   const handleConfirmGoogleLink = (e?: React.FormEvent) => {

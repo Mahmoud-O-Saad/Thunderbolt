@@ -1,4 +1,6 @@
-export type QualificationStatus = 'locked' | 'available' | 'completed';
+import { QualificationStatus, QualificationRecordDetail, QualificationEntry } from '../types';
+
+export type { QualificationStatus };
 
 export interface QualificationModule {
   id: string;
@@ -12,6 +14,7 @@ export interface QualificationModule {
   awardAr: string;
   prerequisites: string;
   prerequisitesAr: string;
+  prerequisiteIds: string[];
   criticalTasks: string[];
   criticalTasksAr: string[];
   traineeManualEn: string;
@@ -33,6 +36,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'مؤهل للمشاركة في العمليات الميدانية الخاضعة للإشراف وتدريبات الصاعقة المتقدمة.',
     prerequisites: 'None',
     prerequisitesAr: 'لا يوجد',
+    prerequisiteIds: [],
     criticalTasks: [
       'Radio check and contact report',
       'Six-digit grid and bearing calculation',
@@ -72,6 +76,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة دليل طليعة معتمد للملاحة في المناطق الوعرة ودوريات الاستطلاع.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Topographic map contour interpretation',
       'Lensatic compass resection and triangulation',
@@ -107,6 +112,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'معتمد لعمليات الاستطلاع العميق والدوريات الخفية خلف خطوط العدو.',
     prerequisites: '01.2 Land Navigation',
     prerequisitesAr: '01.2 الملاحة البرية وتحديد المواقع',
+    prerequisiteIds: ["01.2"],
     criticalTasks: [
       'Natural & artificial camouflage discipline',
       'Establishing Patrol Base and security halts',
@@ -136,6 +142,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'مقاتل اقتحام وتطهير مبانٍ معتمد في حرب المدن.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Dynamic and stealth room entries',
       'Fatal funnel clearance & corner slicing',
@@ -165,6 +172,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'متخصص في تشغيل مناظير الرؤية الليلية وأشعة الليزر تحت الحمراء.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Passive vs Active IR laser engagement',
       'NVG depth perception & weapon zeroing',
@@ -192,6 +200,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة تخصص البقاء والهروب والمقاومة المعتمدة.',
     prerequisites: '01.3 Fieldcraft and Patrol',
     prerequisitesAr: '01.3 فنون الميدان وتسيير الدوريات',
+    prerequisiteIds: ["01.3"],
     criticalTasks: [
       'Wilderness water sourcing and purification',
       'Evasion corridor exploitation',
@@ -221,6 +230,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'مقاتل إنزال جوي وتدخل سريع عبر المروحيات.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Helicopter landing zone (HLZ) clearance and marking',
       'Fast-rope insertion and extraction (FRIES)',
@@ -248,6 +258,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'مقاتل دروع ودوريات استطلاع آلية معتمد.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Convoy spacing and ambush reaction drills',
       'Vehicle bail-out and herringbone defensive posture',
@@ -275,6 +286,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة ونوط مقاتل الصاعقة المصرية من المستوى الأول.',
     prerequisites: '01.1 through 01.6 Complete',
     prerequisitesAr: 'إتمام المستويات من 01.1 إلى 01.6',
+    prerequisiteIds: ["01.1","01.2","01.3","01.4","01.5","01.6"],
     criticalTasks: [
       'Multi-domain infiltration execution',
       'High-value target (HVT) snatch and grab',
@@ -304,6 +316,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة رامي رشاش خفيف معتمد لدعم الفصيلة.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Sector suppression and burst discipline (3-5 rounds)',
       'Rapid barrel change and stoppage clearance under fire',
@@ -331,6 +344,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'معتمد قاذف قنابل ملحق على البندقية الآلية.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'High-angle indirect trajectory estimation',
       'Defilade target engagement at 150m-350m',
@@ -358,6 +372,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة مشغل صواريخ مضادة للدروع وقواذف RPG وكورنيت.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Backblast zone verification and clearance safety',
       'Lead angle calculation on moving armored hulls',
@@ -385,6 +400,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'متخصص دفاع جوي وصواريخ إيغلا وستينغر.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Visual aircraft identification (friend or foe)',
       'IR seeker cooling and tone acquisition lock',
@@ -412,6 +428,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة رامي دقيق معتمد لبندقية القنص التكتيكية.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Wind drift and ballistic drop calculation using Mil-Dot',
       'Spotter communication and target range estimation',
@@ -439,6 +456,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'معتمد خبير تسليح وأسلحة أجنبية وغنائم حربية.',
     prerequisites: '02.1 through 02.3 Complete',
     prerequisitesAr: 'إتمام المستويات 02.1 إلى 02.3',
+    prerequisiteIds: ["02.1","02.2","02.3"],
     criticalTasks: [
       'Complete field strip of 10+ modern assault rifles & LMGs',
       'Headspace & timing calibration for heavy machine guns',
@@ -466,6 +484,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة الطب الميداني ورعاية المصابين تحت النيران (TCCC).',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Care Under Fire (CUF) and rapid tourniquet application',
       'Tactical Field Care (TFC): chest seals & needle decompression',
@@ -493,6 +512,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة مقاتل مهندسي وسد موانع وتحصينات ميدانية.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Obstacle breaching and anti-tank ditch clearance',
       'Fortified bunker and trench line construction',
@@ -520,6 +540,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة خبير تفكيك وإبطال مفعول العبوات الناسفة (EOD).',
     prerequisites: '03.2 Military Engineer',
     prerequisitesAr: '03.2 مهندس عسكري وتحصينات ميدانية',
+    prerequisiteIds: ["03.2"],
     criticalTasks: [
       'IED detection using metal detectors & ground radar',
       'Disarming pressure plates, tripwires, and RCIED receivers',
@@ -547,6 +568,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'نوط الاستطلاع الخاص والرصد خلف خطوط العدو.',
     prerequisites: '01.3 Fieldcraft and Patrol',
     prerequisitesAr: '01.3 فنون الميدان وتسيير الدوريات',
+    prerequisiteIds: ["01.3"],
     criticalTasks: [
       'Sub-surface hide site construction (Spider hole)',
       'Long-range optical observation and photographic logging',
@@ -574,6 +596,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'نوط الضفدع البشري ومقاتل الصاعقة البحرية.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Closed-circuit rebreather (LAR-V) underwater navigation',
       'Subsurface limpet mine placement on harbor targets',
@@ -601,6 +624,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة طيار مسيرات واستطلاع جوي بدون طيار.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Micro-drone deployment from cover under 60 seconds',
       'Target coordinates extraction and real-time laser designation',
@@ -628,6 +652,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة رامي مدفعية وهاون ميداني معتمد.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Sight alignment and elevation bubble calibration',
       'Charge selection and shell fuse configuration (PD, VT, Delay)',
@@ -655,6 +680,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة راصد نيران مشتركة وتوجيه مدفعية وطيران (JFO).',
     prerequisites: '01.2 Land Navigation',
     prerequisitesAr: '01.2 الملاحة البرية وتحديد المواقع',
+    prerequisiteIds: ["01.2"],
     criticalTasks: [
       'Call for Fire (CFF) format transmission in 3 transmissions',
       'Bracketing adjustments (Drop 200, Add 100, Fire for Effect)',
@@ -682,6 +708,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة موجه مقاتلات وهجوم جوي أرضي نهائي (JTAC).',
     prerequisites: '04.2 Forward Observer',
     prerequisitesAr: '04.2 راصد نيران وموجه مدفعية أمامي',
+    prerequisiteIds: ["04.2"],
     criticalTasks: [
       '9-Line Close Air Support (CAS) briefing transmission',
       'Laser target designation and Infrared Pointer talk-on',
@@ -709,6 +736,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'جناح المظلات والإنزال التكتيكي للقوات المسلحة المصرية.',
     prerequisites: '01.1 Basic Combat Qualification',
     prerequisitesAr: '01.1 التأهيل القتالي الأساسي',
+    prerequisiteIds: ["01.1"],
     criticalTasks: [
       'Static-line exit from C-130 / Il-76 transport aircraft',
       'Parachute canopy control and obstacle avoidance',
@@ -738,6 +766,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'الجناح الذهبي للقفز الحر العسكري التسللي (HALO / HAHO).',
     prerequisites: '05.1 Combat Parachutist',
     prerequisitesAr: '05.1 قفز مظلي عسكري تكتيكي',
+    prerequisiteIds: ["05.1"],
     criticalTasks: [
       'HALO (High Altitude Low Opening) exit at 25,000+ feet',
       'HAHO (High Altitude High Opening) 30km stealth cross-border glide',
@@ -765,6 +794,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شهادة كبير مسؤولي القفز الجوي وإدارة الطائرة.',
     prerequisites: '05.2 Military Free-Fall',
     prerequisitesAr: '05.2 قفز حر عسكري',
+    prerequisiteIds: ["05.2"],
     criticalTasks: [
       'Aircraft jump door inspection and wind drift safety calculation',
       'Jumpmaster personnel inspection (JMPI) of 20+ operators',
@@ -790,8 +820,9 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     manualVersion: 'Manual v2.0',
     award: 'Certified Fireteam Leader qualification.',
     awardAr: 'شهادة قائد جماعة صاعقة معتمد.',
-    prerequisites: '01.1 through 01.4 Complete',
-    prerequisitesAr: 'إتمام المستويات من 01.1 إلى 01.4',
+    prerequisites: '01.9 Special Forces Qualification',
+    prerequisitesAr: '01.9 تأهيل الصاعقة والقوات الخاصة المتقدمة',
+    prerequisiteIds: ["01.9"],
     criticalTasks: [
       'Directing fire and movement of 4 operators',
       'Target designation with tracer fire and laser',
@@ -819,6 +850,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'شارة قيادة الفصيلة القتالية للصاعقة.',
     prerequisites: '06.1 Fireteam Leader',
     prerequisitesAr: '06.1 قائد جماعة صاعقة',
+    prerequisiteIds: ["06.1"],
     criticalTasks: [
       'Commanding two fireteams (8-12 operators) in dynamic combat',
       'Issuing five-paragraph Operations Order (OPORD)',
@@ -847,6 +879,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'نوط قيادة العمليات الخاصة وهيئة الأركان.',
     prerequisites: '06.2 Squad Leader',
     prerequisitesAr: '06.2 قائد فصيلة صاعقة',
+    prerequisiteIds: ["06.2"],
     criticalTasks: [
       'Commanding 30+ operators with multi-domain air & artillery support',
       'De-conflicting friendly fires and airspace control',
@@ -874,6 +907,7 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
     awardAr: 'خنجر الصاعقة التذكاري لمكافحة الإرهاب وحرب العصابات.',
     prerequisites: '01.9 Special Forces Qualification',
     prerequisitesAr: '01.9 تأهيل الصاعقة والقوات الخاصة المتقدمة',
+    prerequisiteIds: ["01.9"],
     criticalTasks: [
       'Counter-ambush and raid execution in mountainous terrain',
       'Hostage rescue tactical assault under explosive breach',
@@ -891,17 +925,136 @@ export const QUALIFICATION_MODULES: QualificationModule[] = [
   }
 ];
 
+// Helper getters for qualification entries
+export function getEntryStatus(entry?: QualificationEntry): QualificationStatus {
+  if (!entry) return 'locked';
+  if (typeof entry === 'string') return entry;
+  return entry.status || 'locked';
+}
+
+export function getEntryRemarks(entry?: QualificationEntry): string {
+  if (!entry || typeof entry === 'string') return '';
+  return entry.remarks || '';
+}
+
+export function getEntryDevNotes(entry?: QualificationEntry): string {
+  if (!entry || typeof entry === 'string') return '';
+  return entry.developmentNotes || '';
+}
+
+export function getEntryCertifier(entry?: QualificationEntry): string {
+  if (!entry || typeof entry === 'string') return '';
+  return entry.certifiedBy || '';
+}
+
+export function getEntryDate(entry?: QualificationEntry): string {
+  if (!entry || typeof entry === 'string') return '';
+  return entry.certifiedDate || '';
+}
+
+export interface ResolvedModuleStatus {
+  status: QualificationStatus;
+  missingPrerequisites: { id: string; code: string; title: string; titleAr: string }[];
+  isAvailable: boolean;
+  isCompleted: boolean;
+  isLocked: boolean;
+  entry?: QualificationRecordDetail;
+}
+
+export function resolveModuleStatus(
+  moduleId: string,
+  qualMap?: Record<string, QualificationEntry>
+): ResolvedModuleStatus {
+  const map = qualMap || {};
+  const currentEntry = map[moduleId];
+  const directStatus = getEntryStatus(currentEntry);
+
+  const entryDetail: QualificationRecordDetail | undefined = 
+    currentEntry ? (typeof currentEntry === 'string' ? { status: currentEntry } : currentEntry) : undefined;
+
+  // If already certified / completed
+  if (directStatus === 'completed') {
+    return {
+      status: 'completed',
+      missingPrerequisites: [],
+      isAvailable: false,
+      isCompleted: true,
+      isLocked: false,
+      entry: entryDetail
+    };
+  }
+
+  // If explicitly unlocked / available by instructor (Manual Unlock / شيل Lock)
+  if (directStatus === 'available') {
+    return {
+      status: 'available',
+      missingPrerequisites: [],
+      isAvailable: true,
+      isCompleted: false,
+      isLocked: false,
+      entry: entryDetail
+    };
+  }
+
+  const mod = QUALIFICATION_MODULES.find(m => m.id === moduleId);
+  if (!mod || !mod.prerequisiteIds || mod.prerequisiteIds.length === 0) {
+    return {
+      status: 'available',
+      missingPrerequisites: [],
+      isAvailable: true,
+      isCompleted: false,
+      isLocked: false,
+      entry: entryDetail
+    };
+  }
+
+  // Check all prerequisites
+  const missing: { id: string; code: string; title: string; titleAr: string }[] = [];
+  for (const prereqId of mod.prerequisiteIds) {
+    const prereqStatus = getEntryStatus(map[prereqId]);
+    if (prereqStatus !== 'completed') {
+      const prereqMod = QUALIFICATION_MODULES.find(m => m.id === prereqId);
+      missing.push({
+        id: prereqId,
+        code: prereqMod?.code || prereqId,
+        title: prereqMod?.title || prereqId,
+        titleAr: prereqMod?.titleAr || prereqId
+      });
+    }
+  }
+
+  if (missing.length === 0) {
+    return {
+      status: 'available',
+      missingPrerequisites: [],
+      isAvailable: true,
+      isCompleted: false,
+      isLocked: false,
+      entry: entryDetail
+    };
+  }
+
+  return {
+    status: 'locked',
+    missingPrerequisites: missing,
+    isAvailable: false,
+    isCompleted: false,
+    isLocked: true,
+    entry: entryDetail
+  };
+}
+
 // Helper to calculate completion stats for a member
-export function calculateMemberQualifications(qualifications?: Record<string, QualificationStatus>) {
+export function calculateMemberQualifications(qualifications?: Record<string, QualificationEntry>) {
   const map = qualifications || {};
   let completed = 0;
   let available = 0;
   let locked = 0;
 
   QUALIFICATION_MODULES.forEach(mod => {
-    const status = map[mod.id] || (mod.id === '01.1' ? 'available' : 'locked');
-    if (status === 'completed') completed++;
-    else if (status === 'available') available++;
+    const resolved = resolveModuleStatus(mod.id, map);
+    if (resolved.status === 'completed') completed++;
+    else if (resolved.status === 'available') available++;
     else locked++;
   });
 
