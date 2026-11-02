@@ -59,6 +59,7 @@ import { AccountSwitcherModal } from './AccountSwitcherModal';
 import { LeaderApprovalModal } from './LeaderApprovalModal';
 import { DiscordMemberHub } from './DiscordMemberHub';
 import { SakaAcademyModal } from './SakaAcademyModal';
+import { InsigniaModal } from './InsigniaModal';
 import { calculateMemberQualifications, QualificationStatus } from '../data/qualificationsData';
 import { AVAILABLE_RANKS, isCommandRank, isStaffRank, getRoleTitle } from '../data/initialData';
 
@@ -75,6 +76,7 @@ interface ThunderboltAppProps {
   isMuted: boolean;
   onToggleMute: () => void;
   onShowSplash: () => void;
+  onTriggerBootLoading?: () => void;
   userRole: UserRole;
   onSetUserRole: (role: UserRole) => void;
   currentUser: UserAccount;
@@ -109,6 +111,7 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
   isMuted,
   onToggleMute,
   onShowSplash,
+  onTriggerBootLoading,
   userRole,
   onSetUserRole,
   currentUser,
@@ -133,6 +136,9 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [showPostModal, setShowPostModal] = useState<boolean>(false);
   const [assignedOperatorSearch, setAssignedOperatorSearch] = useState<string>('');
+  
+  // High-Definition Insignia Modal state
+  const [showInsigniaModal, setShowInsigniaModal] = useState<boolean>(false);
   
   // Pending bookings count
   const pendingBookingsCount = trainingBookings.filter(b => b.status === 'pending').length;
@@ -345,32 +351,39 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0d0b]/92 via-[#0a0d0b]/90 to-[#0a0d0b]/96 pointer-events-none" />
         <div className="absolute inset-0 tb-grid opacity-20 pointer-events-none" />
 
-        {/* TOP BAR (EXACT MATCH FOR SCREENSHOTS 1, 2, 4) */}
-        <header className="sticky top-0 z-40 bg-[#0a0d0b]/95 backdrop-blur border-b border-[#f2c14e]/10 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            {/* Eagle Emblem Ring */}
+        {/* TOP BAR (EXACT MATCH FOR SCREENSHOTS 1, 2, 4 WITH ENHANCED CLARITY) */}
+        <header className="sticky top-0 z-40 bg-[#0a0d0b]/95 backdrop-blur border-b border-[#f2c14e]/20 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-md shadow-black/50">
+          <div className="flex items-center gap-3">
+            {/* Prominent High-Definition Eagle Emblem Ring */}
             <button
               onClick={() => {
                 tacticalAudio.playRadioClick();
-                onShowSplash();
+                setShowInsigniaModal(true);
               }}
-              title="Show Splash Screen"
-              className="relative w-9 h-9 rounded-full overflow-hidden border border-[#f2c14e]/40 shadow-inner p-0.5 bg-black cursor-pointer hover:border-[#f2c14e] transition-colors"
+              title="Inspect Official Insignia / شعار الوحدة الرسمي"
+              className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full p-1 bg-gradient-to-b from-[#f2c14e] via-[#312711] to-black border-2 border-[#f2c14e] shadow-lg shadow-[#f2c14e]/30 flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-all group"
             >
+              {/* Outer subtle glow */}
+              <div className="absolute -inset-1 rounded-full bg-[#f2c14e]/20 blur-xs pointer-events-none group-hover:bg-[#f2c14e]/40 transition-colors" />
               <img
-                src="/assets/OP/3.Logo_9d28ba9d.png"
-                alt="Logo"
+                src="/assets/OP/thunderbolt_logo_hd.png"
+                alt="Thunderbolt Emblem"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(242,193,78,0.7)] group-hover:rotate-3 transition-transform"
               />
             </button>
 
             {/* Title & Commander Subtitle */}
             <div className="flex flex-col">
-              <span className="font-display text-sm font-bold tracking-[0.06em] text-stone-100 uppercase leading-none">
-                THUNDERBOLT UNIT
-              </span>
-              <span className="text-[11px] text-[#b09753] font-mono mt-0.5 leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="font-display text-sm sm:text-base font-black tracking-[0.08em] text-stone-100 uppercase leading-none drop-shadow">
+                  THUNDERBOLT UNIT
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#f2c14e]/15 border border-[#f2c14e]/30 text-[#f2c14e] font-mono font-bold leading-none hidden sm:inline-block">
+                  الصاعقة 🇪🇬
+                </span>
+              </div>
+              <span className="text-[11px] text-[#d4b462] font-mono mt-1 leading-none font-medium">
                 Under the command of Maj. Gen. dragon
               </span>
             </div>
@@ -406,26 +419,35 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
           </div>
         </header>
 
-        {/* Operator Identity Ribbon & Quick Client / Account Switcher Access */}
-        <div className="bg-[#0f1411]/90 backdrop-blur-xs border-b border-[#f2c14e]/15 px-3 py-1.5 flex items-center justify-between text-xs z-30">
-          <div className="flex items-center gap-1.5 overflow-hidden">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-xs shadow-emerald-400" />
-            <span className="text-[#f2c14e] font-bold font-mono text-[11px] truncate">
-              {currentUser.rank}
-            </span>
-            <span className="text-stone-100 font-sans font-bold text-[11px] truncate">
-              {currentUser.username}
-            </span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold shrink-0 border ${
-              isCommandRank(currentUser.rank)
-                ? 'bg-[#f2c14e]/20 text-[#f2c14e] border-[#f2c14e]/40' 
-                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-            }`}>
-              {isCommandRank(currentUser.rank) ? 'Command' : (userRole === 'instructor' ? 'Unit Lead' : 'Member (Operator)')}
-            </span>
+        {/* Operator Identity Ribbon & Quick Actions Bar */}
+        <div className="bg-[#0f1411]/95 backdrop-blur-xs border-b border-[#f2c14e]/15 px-3 py-2 z-30 flex flex-col gap-2">
+          {/* Row 1: Operator Identity & Service ID */}
+          <div className="flex items-center justify-between text-xs w-full">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-xs shadow-emerald-400" />
+              <span className="text-[#f2c14e] font-bold font-mono text-[11px] truncate">
+                {currentUser.rank}
+              </span>
+              <span className="text-stone-100 font-sans font-bold text-[11px] truncate">
+                {currentUser.username}
+              </span>
+              <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold shrink-0 border ${
+                isCommandRank(currentUser.rank)
+                  ? 'bg-[#f2c14e]/20 text-[#f2c14e] border-[#f2c14e]/40' 
+                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+              }`}>
+                {isCommandRank(currentUser.rank) ? 'Command' : (userRole === 'instructor' ? 'Unit Lead' : 'Member (Operator)')}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-stone-400 shrink-0">
+              <span className="text-stone-400">ID:</span>
+              <strong className="text-[#f2c14e]">{currentUser.unitServiceId || 'TU-9198'}</strong>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* Row 2 (تحت): SLIDABLE ACTION BUTTONS FULL WIDTH (Never cancelled or hidden) */}
+          <div className="flex items-center gap-2 overflow-x-auto scroll-smooth flex-nowrap w-full py-0.5 custom-scrollbar">
             {userRole === 'instructor' && (pendingAccounts.length > 0 || pendingBookingsCount > 0) && (
               <button
                 onClick={() => {
@@ -433,10 +455,10 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                   setPreselectedEditMemberId(undefined);
                   setShowApprovalModal(true);
                 }}
-                className="inline-flex items-center gap-1 text-[10px] font-mono font-black text-black bg-gradient-to-r from-amber-400 to-[#f2c14e] px-2 py-0.5 rounded-lg border border-[#f2c14e] shadow-sm shadow-[#f2c14e]/30 transition cursor-pointer shrink-0 animate-pulse active:scale-95"
+                className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black text-black bg-gradient-to-r from-amber-400 to-[#f2c14e] px-2.5 py-1 rounded-lg border border-[#f2c14e] shadow-sm shadow-[#f2c14e]/30 transition cursor-pointer shrink-0 animate-pulse active:scale-95 whitespace-nowrap"
                 title="Pending applications and qualification sessions awaiting Commander commissioning"
               >
-                <ShieldCheck className="w-3 h-3 stroke-[2.5]" />
+                <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>{pendingAccounts.length + pendingBookingsCount} Pending</span>
               </button>
             )}
@@ -447,7 +469,7 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                 setSignUpInitialRole('member');
                 setShowSignUpModal(true);
               }}
-              className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black text-black bg-gradient-to-r from-amber-400 to-[#f2c14e] hover:from-[#f2c14e] hover:to-[#ffe285] px-2.5 py-1 rounded-lg border border-[#f2c14e] shadow-sm shadow-[#f2c14e]/30 transition cursor-pointer shrink-0 active:scale-95"
+              className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black text-black bg-gradient-to-r from-amber-400 to-[#f2c14e] hover:from-[#f2c14e] hover:to-[#ffe285] px-3 py-1 rounded-lg border border-[#f2c14e] shadow-sm shadow-[#f2c14e]/30 transition cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
               title="Sign Up with Gmail or Discord"
             >
               <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -456,11 +478,11 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
 
             <button
               onClick={() => handleOpenAcademy()}
-              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#f2c14e] bg-[#f2c14e]/10 hover:bg-[#f2c14e]/20 px-2 py-0.5 rounded-lg border border-[#f2c14e]/30 transition cursor-pointer shrink-0 active:scale-95"
+              className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-[#f2c14e] bg-[#f2c14e]/10 hover:bg-[#f2c14e]/20 px-2.5 py-1 rounded-lg border border-[#f2c14e]/30 transition cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
               title="Sa'ka Academy Qualification Record"
             >
-              <Award className="w-3 h-3 text-[#f2c14e]" />
-              <span>Academy</span>
+              <Award className="w-3.5 h-3.5 text-[#f2c14e]" />
+              <span>Academy (أكاديمية الصاعقة)</span>
             </button>
 
             <button
@@ -468,10 +490,10 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                 tacticalAudio.playRadioClick();
                 setShowAccountSwitcher(true);
               }}
-              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-stone-300 hover:text-white bg-stone-900 hover:bg-stone-800 px-2 py-0.5 rounded-lg border border-stone-700 transition cursor-pointer shrink-0 active:scale-95"
+              className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-stone-200 hover:text-white bg-stone-900 hover:bg-stone-800 px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
               title="Switch Accounts"
             >
-              <Users className="w-3 h-3 text-[#f2c14e]" />
+              <Users className="w-3.5 h-3.5 text-[#f2c14e]" />
               <span>Accounts ({accounts.length})</span>
             </button>
           </div>
@@ -919,12 +941,12 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                   >
                     {/* Glowing Circular Eagle Emblem matching Screenshot 1 */}
                     <div className="flex justify-center mb-1">
-                      <div className="relative w-16 h-16 rounded-full p-0.5 border border-[#f2c14e]/30 bg-black/60 shadow-xl shadow-[#f2c14e]/15 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <div className="relative w-16 h-16 rounded-full p-1 border-2 border-[#f2c14e] bg-gradient-to-b from-[#2a220e] to-black shadow-xl shadow-[#f2c14e]/25 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <img
-                          src="/assets/OP/3.Logo_9d28ba9d.png"
+                          src="/assets/OP/thunderbolt_logo_hd.png"
                           alt="Emblem"
                           referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover rounded-full"
+                          className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(242,193,78,0.6)]"
                         />
                       </div>
                     </div>
@@ -983,12 +1005,12 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
                 /* Empty state identical to Screenshot 1 */
                 <div className="rounded-3xl p-8 tb-card border border-[#f2c14e]/20 text-center space-y-4 relative overflow-hidden">
                   <div className="flex justify-center">
-                    <div className="w-16 h-16 rounded-full p-0.5 border border-[#f2c14e]/30 bg-black/60 shadow-xl shadow-[#f2c14e]/10 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full p-1 border-2 border-[#f2c14e]/60 bg-gradient-to-b from-[#2a220e] to-black shadow-xl shadow-[#f2c14e]/20 flex items-center justify-center">
                       <img
-                        src="/assets/OP/3.Logo_9d28ba9d.png"
+                        src="/assets/OP/thunderbolt_logo_hd.png"
                         alt="Emblem"
                         referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover rounded-full"
+                        className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(242,193,78,0.6)]"
                       />
                     </div>
                   </div>
@@ -2339,6 +2361,20 @@ export const ThunderboltApp: React.FC<ThunderboltAppProps> = ({
             onSaveTrainingBooking={onSaveTrainingBooking}
           />
         )}
+
+        {/* MODAL: OFFICIAL INSIGNIA & EMBLEM INSPECTION */}
+        <InsigniaModal
+          isOpen={showInsigniaModal}
+          onClose={() => setShowInsigniaModal(false)}
+          onReplayLoading={() => {
+            if (onTriggerBootLoading) {
+              onTriggerBootLoading();
+            } else {
+              onShowSplash();
+            }
+          }}
+          lang={lang}
+        />
 
       </div>
     </div>

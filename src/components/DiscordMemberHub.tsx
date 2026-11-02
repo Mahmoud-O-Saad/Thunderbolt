@@ -93,11 +93,12 @@ export const DiscordMemberHub: React.FC<DiscordMemberHubProps> = ({
 
           {/* Bottom badge overlay */}
           <div className="absolute bottom-2 left-4 flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full border-2 border-[#5865F2] p-0.5 bg-black/90 shadow-lg">
+            <div className="w-10 h-10 rounded-full border-2 border-[#5865F2] p-0.5 bg-black/90 shadow-lg shrink-0">
               <img
-                src="/assets/OP/3.Logo_9d28ba9d.png"
+                src="/assets/OP/thunderbolt_logo_hd.png"
                 alt="Emblem"
-                className="w-full h-full object-cover rounded-full"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(242,193,78,0.6)]"
               />
             </div>
             <div>

@@ -63,13 +63,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onEnter, onDirectToM
             {/* Inner ring */}
             <div className="absolute -inset-2 rounded-full border border-[#f2c14e]/40 pointer-events-none" />
             
-            {/* The Eagle Emblem */}
-            <div className="relative w-32 h-32 rounded-full p-1 bg-gradient-to-b from-[#f2c14e]/60 via-[#101412] to-black border-2 border-[#f2c14e]/70 shadow-2xl shadow-[#f2c14e]/30 flex items-center justify-center overflow-hidden">
+            {/* The High-Definition Eagle Emblem */}
+            <div className="relative w-36 h-36 sm:w-40 sm:h-40 rounded-full p-1.5 bg-gradient-to-b from-[#f2c14e] via-[#352b13] to-black border-3 border-[#f2c14e] shadow-2xl shadow-[#f2c14e]/50 flex items-center justify-center overflow-hidden">
               <img
-                src="/assets/OP/3.Logo_9d28ba9d.png"
+                src="/assets/OP/thunderbolt_logo_hd.png"
                 alt="Thunderbolt Emblem"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(242,193,78,0.7)]"
               />
             </div>
           </div>

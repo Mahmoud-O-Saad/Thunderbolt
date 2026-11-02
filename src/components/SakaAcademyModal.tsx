@@ -79,8 +79,8 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
   trainingBookings = [],
   onSaveTrainingBooking,
 }) => {
-  // Navigation Tabs: DASHBOARD | QUALIFICATIONS | ASSESSMENT | PERSONNEL RECORDS | EXPORT
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'QUALIFICATIONS' | 'ASSESSMENT' | 'PERSONNEL RECORDS' | 'EXPORT'>('QUALIFICATIONS');
+  // Navigation Tabs: DASHBOARD | QUALIFICATIONS | PROMOTIONS | ASSESSMENT | PERSONNEL RECORDS | EXPORT
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'QUALIFICATIONS' | 'PROMOTIONS' | 'ASSESSMENT' | 'PERSONNEL RECORDS' | 'EXPORT'>('QUALIFICATIONS');
   
   // Selected Member to inspect/manage
   const [selectedMemberId, setSelectedMemberId] = useState<string>(() => {
@@ -148,9 +148,29 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
           }
         });
 
+  // Mobile responsive view mode for qualifications ('list' | 'detail')
+  const [mobileQualView, setMobileQualView] = useState<'list' | 'detail'>('list');
+
   const stats = calculateMemberQualifications(memberQualMap);
   const selectedModule = QUALIFICATION_MODULES.find(m => m.id === selectedModuleId) || QUALIFICATION_MODULES[0];
   const selectedResolved = resolveModuleStatus(selectedModule.id, memberQualMap);
+  const currentIndex = QUALIFICATION_MODULES.findIndex(m => m.id === selectedModuleId);
+
+  const handleNextModule = () => {
+    tacticalAudio.playRadioClick();
+    const nextIdx = (currentIndex + 1) % QUALIFICATION_MODULES.length;
+    setSelectedModuleId(QUALIFICATION_MODULES[nextIdx].id);
+    setEditingRemarksModuleId(null);
+    setEditingDevNotesModuleId(null);
+  };
+
+  const handlePrevModule = () => {
+    tacticalAudio.playRadioClick();
+    const prevIdx = (currentIndex - 1 + QUALIFICATION_MODULES.length) % QUALIFICATION_MODULES.length;
+    setSelectedModuleId(QUALIFICATION_MODULES[prevIdx].id);
+    setEditingRemarksModuleId(null);
+    setEditingDevNotesModuleId(null);
+  };
 
   const currentRemarks = getEntryRemarks(memberQualMap[selectedModule.id]);
   const currentDevNotes = getEntryDevNotes(memberQualMap[selectedModule.id]);
@@ -318,7 +338,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 text-[#ede8de] select-none p-2 sm:p-4 md:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 text-[#ede8de] select-none p-0 sm:p-3 md:p-6 overflow-y-auto">
       {/* Background ambient texture matching ARMA III in-game atmosphere */}
       <div 
         className="fixed inset-0 bg-cover bg-center opacity-15 blur-sm scale-105 pointer-events-none"
@@ -327,22 +347,22 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
       <div className="fixed inset-0 bg-gradient-to-b from-black/90 via-[#0a0d0b]/95 to-black pointer-events-none" />
 
       {/* Main Tactical Academy Screen Frame matching the Screenshot */}
-      <div className="w-full max-w-7xl h-full max-h-[94vh] bg-[#0c0f0d] border border-[#f2c14e]/30 shadow-2xl flex flex-col relative z-10 overflow-hidden font-mono">
+      <div className="w-full max-w-7xl h-full sm:h-auto sm:max-h-[96vh] bg-[#0c0f0d] border-0 sm:border border-[#f2c14e]/30 shadow-2xl flex flex-col relative z-10 overflow-hidden font-mono sm:rounded-2xl">
         
         {/* =========================================================================
             TOP HEADER BAR (MATCHING SCREENSHOT EXACTLY)
             THUNDERBOLT / SA'KA ACADEMY | Instructor | [CPL] Mahmoud | [ CLOSE ]
            ========================================================================= */}
-        <header className="bg-black/90 border-b border-[#f2c14e]/30 px-4 py-2.5 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#f2c14e] animate-pulse" />
-            <h1 className="text-sm sm:text-base md:text-lg font-black tracking-[0.2em] text-[#f2c14e] uppercase">
+        <header className="bg-black/90 border-b border-[#f2c14e]/30 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f2c14e] animate-pulse shrink-0" />
+            <h1 className="text-xs sm:text-base md:text-lg font-black tracking-wider sm:tracking-[0.2em] text-[#f2c14e] uppercase truncate">
               THUNDERBOLT / SA'KA ACADEMY
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-stone-300 font-bold hidden sm:flex items-center gap-1.5 bg-stone-900/80 px-2.5 py-1 rounded border border-stone-800">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="text-[11px] sm:text-xs text-stone-300 font-bold hidden sm:flex items-center gap-1.5 bg-stone-900/80 px-2.5 py-1 rounded border border-stone-800">
               <span className="text-stone-400">Instructor |</span>
               <span className="text-[#f2c14e]">{currentUser.rank}</span>
               <span className="text-white">{currentUser.username}</span>
@@ -353,7 +373,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                 tacticalAudio.playRadioClick();
                 onClose();
               }}
-              className="px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white text-xs font-bold uppercase tracking-wider rounded border border-stone-700 transition cursor-pointer"
+              className="px-2.5 sm:px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white text-xs font-bold uppercase tracking-wider rounded border border-stone-700 transition cursor-pointer"
             >
               CLOSE
             </button>
@@ -361,10 +381,10 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
         </header>
 
         {/* Member Selector Strip across top for rapid assessment */}
-        <div className="bg-[#101512] border-b border-stone-800 px-4 py-2 flex items-center justify-between flex-wrap gap-2 text-xs shrink-0">
-          <div className="flex items-center gap-2 overflow-x-auto max-w-full py-0.5">
-            <span className="text-[11px] text-stone-400 uppercase tracking-wider font-bold shrink-0">
-              Operator Record:
+        <div className="bg-[#101512] border-b border-stone-800 px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between flex-wrap gap-2 text-xs shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto max-w-full py-0.5 custom-scrollbar">
+            <span className="text-[10px] sm:text-[11px] text-stone-400 uppercase tracking-wider font-bold shrink-0">
+              Operator:
             </span>
             {accounts.map(acc => {
               const isSelected = acc.id === selectedMemberId;
@@ -376,7 +396,7 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                     tacticalAudio.playRadioClick();
                     setSelectedMemberId(acc.id);
                   }}
-                  className={`px-2.5 py-1 rounded text-[11px] font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+                  className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[10px] sm:text-[11px] font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                     isSelected
                       ? 'bg-[#f2c14e] text-black border-[#f2c14e] shadow-xs'
                       : 'bg-black/60 text-stone-300 border-stone-800 hover:border-stone-700'
@@ -393,9 +413,8 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
             })}
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-stone-400">
+          <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-stone-400 shrink-0">
             <span>Pass: <strong className="text-[#f2c14e]">{targetServiceId}</strong></span>
-            <span>UID: <strong className="text-stone-300">{targetSteamUid}</strong></span>
             <span className="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
               {stats.percent}% Certified
             </span>
@@ -421,85 +440,85 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
            ========================================================================= */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           
-          {/* Panel 1: Left Navigation Menu (Exact match to screenshot) */}
-          <nav className="w-full md:w-48 bg-black/80 border-b md:border-b-0 md:border-r border-stone-800 p-2.5 flex md:flex-col gap-1.5 shrink-0 overflow-x-auto md:overflow-y-auto">
-            <button
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                setActiveTab('DASHBOARD');
-              }}
-              className={`w-full py-2.5 px-3 text-left text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer shrink-0 ${
-                activeTab === 'DASHBOARD'
-                  ? 'bg-[#38351c] text-[#f2c14e] border border-[#f2c14e]/40 shadow-xs'
-                  : 'bg-stone-900/70 hover:bg-stone-800 text-stone-300 border border-stone-800'
-              }`}
-            >
-              DASHBOARD
-            </button>
-
-            <button
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                setActiveTab('QUALIFICATIONS');
-              }}
-              className={`w-full py-2.5 px-3 text-left text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer shrink-0 ${
-                activeTab === 'QUALIFICATIONS'
-                  ? 'bg-[#38351c] text-[#f2c14e] border border-[#f2c14e]/40 shadow-xs'
-                  : 'bg-stone-900/70 hover:bg-stone-800 text-stone-300 border border-stone-800'
-              }`}
-            >
-              QUALIFICATIONS
-            </button>
-
-            <button
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                setActiveTab('ASSESSMENT');
-              }}
-              className={`w-full py-2.5 px-3 text-left text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer shrink-0 ${
-                activeTab === 'ASSESSMENT'
-                  ? 'bg-[#38351c] text-[#f2c14e] border border-[#f2c14e]/40 shadow-xs'
-                  : 'bg-stone-900/70 hover:bg-stone-800 text-stone-300 border border-stone-800'
-              }`}
-            >
-              ASSESSMENT
-            </button>
-
-            <button
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                setActiveTab('PERSONNEL RECORDS');
-              }}
-              className={`w-full py-2.5 px-3 text-left text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer shrink-0 ${
-                activeTab === 'PERSONNEL RECORDS'
-                  ? 'bg-[#38351c] text-[#f2c14e] border border-[#f2c14e]/40 shadow-xs'
-                  : 'bg-stone-900/70 hover:bg-stone-800 text-stone-300 border border-stone-800'
-              }`}
-            >
-              PERSONNEL RECORDS
-            </button>
-
-            <button
-              onClick={() => {
-                tacticalAudio.playRadioClick();
-                setActiveTab('EXPORT');
-              }}
-              className={`w-full py-2.5 px-3 text-left text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer shrink-0 ${
-                activeTab === 'EXPORT'
-                  ? 'bg-[#38351c] text-[#f2c14e] border border-[#f2c14e]/40 shadow-xs'
-                  : 'bg-stone-900/70 hover:bg-stone-800 text-stone-300 border border-stone-800'
-              }`}
-            >
-              EXPORT
-            </button>
+          {/* Panel 1: Left Navigation Menu (Exact match to screenshot, horizontal scroll on mobile) */}
+          <nav className="w-full md:w-44 lg:w-48 bg-black/90 border-b md:border-b-0 md:border-r border-stone-800 p-1.5 sm:p-2.5 flex md:flex-col gap-1 sm:gap-1.5 shrink-0 overflow-x-auto md:overflow-y-auto custom-scrollbar">
+            {(['DASHBOARD', 'QUALIFICATIONS', 'PROMOTIONS', 'ASSESSMENT', 'PERSONNEL RECORDS', 'EXPORT'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => {
+                  tacticalAudio.playRadioClick();
+                  setActiveTab(tab);
+                }}
+                className={`py-1.5 sm:py-2 px-2.5 sm:px-3 text-left text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-lg transition cursor-pointer shrink-0 whitespace-nowrap ${
+                  activeTab === tab
+                    ? 'bg-[#38351c] text-[#f2c14e] border border-[#f2c14e]/40 shadow-xs'
+                    : 'bg-stone-900/70 hover:bg-stone-800 text-stone-300 border border-stone-800'
+                }`}
+              >
+                {tab === 'PROMOTIONS' ? 'PROMOTIONS · الترقيات' : tab === 'PERSONNEL RECORDS' ? 'RECORDS' : tab}
+              </button>
+            ))}
           </nav>
 
           {/* Panel 2 & 3: Content Views */}
           {activeTab === 'QUALIFICATIONS' && (
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               
-              {/* Middle Column: QUALIFICATION STRUCTURE List (Matches Screenshot) */}
-              <div className="w-full lg:w-[380px] border-b lg:border-b-0 lg:border-r border-stone-800 p-4 flex flex-col overflow-hidden bg-[#090d0b]">
+              {/* MOBILE VIEW TOGGLE BAR (Visible only on mobile/tablets < lg) */}
+              <div className="lg:hidden bg-[#0c100e] border-b border-stone-800 px-3 py-1.5 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-1 bg-black p-0.5 rounded-lg border border-stone-800">
+                  <button
+                    onClick={() => {
+                      tacticalAudio.playRadioClick();
+                      setMobileQualView('list');
+                    }}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer flex items-center gap-1 ${
+                      mobileQualView === 'list'
+                        ? 'bg-[#f2c14e] text-black shadow-xs'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📋 Modules ({QUALIFICATION_MODULES.length})</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      tacticalAudio.playRadioClick();
+                      setMobileQualView('detail');
+                    }}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer flex items-center gap-1 ${
+                      mobileQualView === 'detail'
+                        ? 'bg-[#f2c14e] text-black shadow-xs'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🎖️ {selectedModule.code} Details</span>
+                  </button>
+                </div>
+
+                {mobileQualView === 'detail' && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePrevModule}
+                      className="px-2 py-1 rounded bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-xs font-mono font-bold cursor-pointer"
+                      title="Previous Module"
+                    >
+                      ◀ Prev
+                    </button>
+                    <button
+                      onClick={handleNextModule}
+                      className="px-2 py-1 rounded bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-xs font-mono font-bold cursor-pointer"
+                      title="Next Module"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Middle Column: QUALIFICATION STRUCTURE List (Visible on desktop or when mobileQualView === 'list') */}
+              <div className={`w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-stone-800 p-3 sm:p-4 flex flex-col overflow-hidden bg-[#090d0b] ${
+                mobileQualView === 'detail' ? 'hidden lg:flex' : 'flex flex-1'
+              }`}>
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-800 gap-1 flex-wrap">
                   <h2 className="text-xs font-bold tracking-widest text-[#f2c14e] uppercase shrink-0">
                     QUALIFICATION STRUCTURE
@@ -518,20 +537,20 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                   {QUALIFICATION_MODULES.map(module => {
                     const resolved = resolveModuleStatus(module.id, memberQualMap);
                     const isSelected = module.id === selectedModuleId;
 
                     let statusLabel = 'Locked';
-                    let statusColor = 'text-stone-500';
+                    let statusColor = 'text-stone-400 border-stone-800 bg-stone-900/80';
 
                     if (resolved.isCompleted) {
                       statusLabel = 'Certified ✓';
-                      statusColor = 'text-emerald-400 font-bold';
+                      statusColor = 'text-emerald-400 font-bold border-emerald-500/40 bg-emerald-950/60';
                     } else if (resolved.isAvailable) {
                       statusLabel = 'Available';
-                      statusColor = 'text-[#f2c14e] font-bold';
+                      statusColor = 'text-[#f2c14e] font-bold border-[#f2c14e]/40 bg-amber-950/60';
                     }
 
                     return (
@@ -542,22 +561,29 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                           setSelectedModuleId(module.id);
                           setEditingRemarksModuleId(null);
                           setEditingDevNotesModuleId(null);
+                          setMobileQualView('detail'); // Instantly view details on mobile
                         }}
-                        className={`w-full py-1.5 px-2 text-left text-xs transition cursor-pointer flex items-center justify-between rounded ${
+                        className={`w-full py-2.5 px-3 text-left transition cursor-pointer flex items-center justify-between rounded-xl border ${
                           isSelected
-                            ? 'bg-[#3b361a] text-[#f2c14e] font-bold border-l-2 border-[#f2c14e]'
+                            ? 'bg-[#3b361a] text-[#f2c14e] font-bold border-[#f2c14e] shadow-md shadow-[#f2c14e]/10 ring-1 ring-[#f2c14e]/50'
                             : resolved.isAvailable
-                            ? 'hover:bg-stone-900 text-stone-200'
+                            ? 'bg-black/50 hover:bg-stone-900 text-stone-100 border-stone-800 hover:border-stone-700'
                             : resolved.isCompleted
-                            ? 'hover:bg-stone-900 text-emerald-200'
-                            : 'hover:bg-stone-900/40 text-stone-400'
+                            ? 'bg-black/50 hover:bg-stone-900 text-emerald-100 border-emerald-900/40 hover:border-emerald-600/50'
+                            : 'bg-black/30 hover:bg-stone-900/40 text-stone-400 border-stone-900'
                         }`}
                       >
-                        <span className="truncate mr-2">
-                          {module.code} {module.title}
-                        </span>
-                        <span className={`text-[10px] shrink-0 ${statusColor}`}>
-                          — {statusLabel}
+                        <div className="truncate mr-2 space-y-0.5">
+                          <span className="block truncate text-xs sm:text-sm font-bold text-stone-100">
+                            <span className="text-[#f2c14e] mr-1.5 font-mono">{module.code}</span>
+                            {module.title}
+                          </span>
+                          <span className="block truncate text-[10px] sm:text-[11px] text-stone-400 font-arabic">
+                            {module.titleAr}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md border shrink-0 font-mono ${statusColor}`}>
+                          {statusLabel}
                         </span>
                       </button>
                     );
@@ -565,116 +591,155 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                 </div>
               </div>
 
-              {/* Right Column: Detailed View of Selected Module (Matches Screenshot) */}
-              <div className="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col justify-between bg-[#080b09] space-y-6">
-                <div className="space-y-4">
-                  {/* Title & Metadata Header */}
-                  <div>
-                    <h3 className="text-base sm:text-xl font-bold text-stone-100 uppercase tracking-wide">
-                      {selectedModule.code} {selectedModule.title}
-                    </h3>
-                    <p className="text-xs text-stone-400 mt-0.5">
+              {/* Right Column: Detailed View of Selected Module (Visible on desktop or when mobileQualView === 'detail') */}
+              <div className={`flex-1 p-3.5 sm:p-6 md:p-8 overflow-y-auto flex flex-col justify-between bg-[#080b09] space-y-5 sm:space-y-7 min-w-0 ${
+                mobileQualView === 'list' ? 'hidden lg:flex' : 'flex'
+              }`}>
+                {/* Mobile Back to List Button */}
+                <div className="lg:hidden flex items-center justify-between pb-2 border-b border-stone-800/80">
+                  <button
+                    onClick={() => {
+                      tacticalAudio.playRadioClick();
+                      setMobileQualView('list');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#f2c14e] hover:underline cursor-pointer"
+                  >
+                    <span>← Back to Modules / العودة لقائمة المؤهلات</span>
+                  </button>
+                  <span className="text-[11px] font-mono text-stone-400">
+                    {currentIndex + 1} of {QUALIFICATION_MODULES.length}
+                  </span>
+                </div>
+
+                <div className="space-y-5 sm:space-y-6">
+                  {/* Title & Metadata Header (Large & Prominent) */}
+                  <div className="border-b border-stone-800 pb-3 sm:pb-4 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-[#f2c14e]/15 border border-[#f2c14e]/40 text-[#f2c14e] font-mono font-black text-xs sm:text-base">
+                        {selectedModule.code}
+                      </span>
+                      <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-stone-100 uppercase tracking-wide font-sans">
+                        {selectedModule.title}
+                      </h3>
+                    </div>
+                    <p className="text-xs sm:text-sm text-stone-400 font-mono">
                       {selectedModule.category} | {selectedModule.manualVersion}
                     </p>
-                    <p className="text-[11px] text-[#f2c14e] font-arabic mt-0.5">
+                    <p className="text-xs sm:text-base md:text-lg text-[#f2c14e] font-arabic font-bold pt-0.5">
                       {selectedModule.titleAr} ({selectedModule.categoryAr})
                     </p>
                   </div>
 
-                  {/* STATUS */}
-                  <div className="flex items-center flex-wrap gap-2.5">
-                    <div>
-                      <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block">
-                        STATUS:
+                  {/* STATUS (High Visibility Tactical Card) */}
+                  <div className="p-4 rounded-xl bg-black/70 border border-stone-800 flex items-center justify-between flex-wrap gap-3">
+                    <div className="space-y-1">
+                      <span className="text-xs font-black tracking-widest text-stone-400 uppercase block font-mono">
+                        QUALIFICATION STATUS · حالة التأهيل
                       </span>
-                      <span className={`text-xs font-bold uppercase ${
-                        selectedResolved.isCompleted ? 'text-emerald-400' :
-                        selectedResolved.isAvailable ? 'text-[#f2c14e]' : 'text-stone-500'
-                      }`}>
-                        {selectedResolved.isCompleted ? 'Certified (Completed) ✓' :
-                         selectedResolved.isAvailable ? 'Available' : 'Locked'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm sm:text-base font-black uppercase px-3.5 py-1.5 rounded-lg border flex items-center gap-1.5 ${
+                          selectedResolved.isCompleted
+                            ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/50 shadow-md shadow-emerald-950/40'
+                            : selectedResolved.isAvailable
+                            ? 'bg-amber-950/80 text-[#f2c14e] border-[#f2c14e]/50 shadow-md shadow-amber-950/40'
+                            : 'bg-stone-900 text-stone-400 border-stone-700'
+                        }`}>
+                          {selectedResolved.isCompleted && <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />}
+                          {selectedResolved.isAvailable && <Sparkles className="w-4 h-4 text-[#f2c14e]" />}
+                          {selectedResolved.isLocked && <Lock className="w-4 h-4 text-stone-500" />}
+                          <span>
+                            {selectedResolved.isCompleted ? 'Certified (Completed) ✓' :
+                             selectedResolved.isAvailable ? 'Available for Assessment' : 'Locked (Missing Prerequisites)'}
+                          </span>
+                        </span>
+                      </div>
                     </div>
 
                     {/* Dedicated Button to Remove Lock (زرار شيل Lock) */}
                     {isInstructor && selectedResolved.isLocked && (
                       <button
                         onClick={() => handleSetStatus('available')}
-                        className="px-3 py-1 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-bold uppercase rounded shadow-sm flex items-center gap-1.5 cursor-pointer transition animate-pulse hover:animate-none"
+                        className="px-4 py-2 bg-gradient-to-r from-amber-500 to-[#f2c14e] hover:from-amber-400 hover:to-amber-300 text-black text-xs sm:text-sm font-black uppercase rounded-lg shadow-md flex items-center gap-2 cursor-pointer transition active:scale-95"
                         title="شيل Lock وفك القفل عن هذا المؤهل فوراً"
                       >
-                        <Unlock className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <Unlock className="w-4 h-4 stroke-[2.5]" />
                         <span>شيل Lock (فك القفل)</span>
                       </button>
                     )}
                   </div>
 
                   {/* AWARD */}
-                  <div>
-                    <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block">
-                      AWARD
+                  <div className="p-4 rounded-xl bg-black/40 border border-stone-800/80 space-y-1.5">
+                    <span className="text-xs sm:text-sm font-black tracking-wider text-[#f2c14e] uppercase flex items-center gap-1.5 font-mono">
+                      <Award className="w-4 h-4 text-[#f2c14e]" />
+                      <span>AWARD & INSIGNIA · الشارة والمزايا</span>
                     </span>
-                    <p className="text-xs text-stone-200 leading-relaxed">
+                    <p className="text-sm sm:text-base text-stone-100 font-sans leading-relaxed">
                       {selectedModule.award}
                     </p>
-                    <p className="text-[11px] text-stone-400 font-arabic mt-0.5">
+                    <p className="text-xs sm:text-sm text-stone-300 font-arabic pt-0.5">
                       {selectedModule.awardAr}
                     </p>
                   </div>
 
-                  {/* PREREQUISITES - WITH DYNAMIC MISSING ALERT (Exact Match to ARMA III Screenshot!) */}
-                  <div>
-                    <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block">
-                      PREREQUISITES
+                  {/* PREREQUISITES - WITH DYNAMIC MISSING ALERT */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-stone-800/80 space-y-2">
+                    <span className="text-xs sm:text-sm font-black tracking-wider text-[#f2c14e] uppercase flex items-center gap-1.5 font-mono">
+                      <Shield className="w-4 h-4 text-[#f2c14e]" />
+                      <span>PREREQUISITES · المتطلبات التكتيكية المسبقة</span>
                     </span>
-                    <p className="text-xs text-stone-300">
+                    <p className="text-sm sm:text-base text-stone-200 font-sans">
                       {selectedModule.prerequisites} ({selectedModule.prerequisitesAr})
                     </p>
-                    {/* Orange Missing alert as shown in screenshots 3 & 4 */}
+                    {/* Orange Missing alert */}
                     {selectedResolved.isLocked && selectedResolved.missingPrerequisites.length > 0 && (
-                      <div className="text-xs font-bold text-[#f97316] mt-1.5 flex items-start gap-1.5">
-                        <span className="shrink-0">Missing:</span>
-                        <span>
-                          {selectedResolved.missingPrerequisites.map(p => `${p.code} ${p.title}`).join(', ')}
-                        </span>
+                      <div className="text-xs sm:text-sm font-bold text-amber-300 bg-amber-950/60 p-3 rounded-xl border border-amber-500/40 mt-2 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-mono text-amber-400 font-bold block">Missing Required Modules:</span>
+                          <span>
+                            {selectedResolved.missingPrerequisites.map(p => `${p.code} ${p.title}`).join(', ')}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {selectedResolved.isAvailable && selectedModule.prerequisiteIds.length > 0 && (
-                      <div className="text-[11px] font-bold text-emerald-400 mt-1.5 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      <div className="text-xs sm:text-sm font-bold text-emerald-400 bg-emerald-950/50 p-2.5 rounded-lg border border-emerald-500/30 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                         <span>All prerequisites satisfied — Available for assessment</span>
                       </div>
                     )}
                   </div>
 
                   {/* CRITICAL TASKS (Bullet points matching screenshot) */}
-                  <div>
-                    <span className="text-xs font-bold tracking-wider text-[#f2c14e] uppercase block mb-1">
-                      CRITICAL TASKS
+                  <div className="p-4 rounded-xl bg-black/40 border border-stone-800/80 space-y-3">
+                    <span className="text-xs sm:text-sm font-black tracking-wider text-[#f2c14e] uppercase flex items-center gap-1.5 font-mono">
+                      <ClipboardCheck className="w-4 h-4 text-[#f2c14e]" />
+                      <span>CRITICAL TASKS · المهام والاشتراطات الميدانية</span>
                     </span>
-                    <ul className="space-y-1 text-xs text-stone-200">
+                    <ul className="space-y-2 text-xs sm:text-sm text-stone-100 font-sans">
                       {selectedModule.criticalTasks.map((task, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5">
-                          <span className="text-[#f2c14e]">•</span>
+                        <li key={idx} className="flex items-start gap-2 leading-relaxed">
+                          <span className="text-[#f2c14e] font-black text-base">•</span>
                           <span>{task}</span>
                         </li>
                       ))}
                     </ul>
-                  </div>
 
-                  {/* Arabic Critical Tasks */}
-                  <div className="pt-1 border-t border-stone-800">
-                    <span className="text-[11px] font-bold text-[#f2c14e] font-arabic block mb-1">
-                      المهام والاشتراطات التكتيكية باللغة العربية:
-                    </span>
-                    <ul className="space-y-1 text-[11px] text-stone-300 font-arabic">
-                      {selectedModule.criticalTasksAr.map((taskAr, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5">
-                          <span className="text-[#f2c14e]">•</span>
-                          <span>{taskAr}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {/* Arabic Critical Tasks */}
+                    <div className="pt-2 border-t border-stone-800 space-y-1.5">
+                      <span className="text-xs sm:text-sm font-bold text-[#f2c14e] font-arabic block">
+                        الاشتراطات باللغة العربية:
+                      </span>
+                      <ul className="space-y-1.5 text-xs sm:text-sm text-stone-200 font-arabic">
+                        {selectedModule.criticalTasksAr.map((taskAr, idx) => (
+                          <li key={idx} className="flex items-start gap-2 leading-relaxed">
+                            <span className="text-[#f2c14e] font-black">•</span>
+                            <span>{taskAr}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
 
                   {/* =========================================================================
@@ -682,14 +747,14 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                       - Instructors and Commander Dragon have write/edit access
                       - Members have read-only view access
                      ========================================================================= */}
-                  <div className="pt-3 border-t border-stone-800 space-y-3">
+                  <div className="pt-2 border-t border-stone-800 space-y-4">
                     
                     {/* CONTAINER 1: EVALUATION REMARKS */}
-                    <div className="rounded-xl p-3.5 bg-black/70 border border-stone-800 space-y-2">
+                    <div className="rounded-2xl p-4 sm:p-5 bg-black/70 border border-stone-800 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4 text-[#f2c14e]" />
-                          <span className="text-xs font-bold text-[#f2c14e] uppercase tracking-wider">
+                          <MessageSquare className="w-5 h-5 text-[#f2c14e]" />
+                          <span className="text-xs sm:text-sm font-black text-[#f2c14e] uppercase tracking-wider font-mono">
                             EVALUATION REMARKS · ملاحظات التقييم الميداني
                           </span>
                         </div>
@@ -700,35 +765,35 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                               setEditingRemarksModuleId(selectedModule.id);
                               setRemarksInput(currentRemarks);
                             }}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-stone-800 hover:bg-stone-700 text-[#f2c14e] border border-[#f2c14e]/30 transition flex items-center gap-1 cursor-pointer"
+                            className="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-stone-800 hover:bg-stone-700 text-[#f2c14e] border border-[#f2c14e]/30 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                           >
-                            <Edit3 className="w-3 h-3" />
+                            <Edit3 className="w-3.5 h-3.5" />
                             <span>{currentRemarks ? 'Edit Remarks' : '+ Add Remarks'}</span>
                           </button>
                         )}
                       </div>
 
                       {editingRemarksModuleId === selectedModule.id ? (
-                        <div className="space-y-2 pt-1">
+                        <div className="space-y-3 pt-1">
                           <textarea
                             value={remarksInput}
                             onChange={(e) => setRemarksInput(e.target.value)}
                             rows={3}
                             placeholder="Enter formal instructor assessment remarks, tactical performance review, and pass criteria..."
-                            className="w-full p-2.5 bg-stone-900 border border-[#f2c14e]/40 rounded text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[#f2c14e]"
+                            className="w-full p-3 bg-stone-900 border border-[#f2c14e]/40 rounded-xl text-xs sm:text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[#f2c14e] font-sans"
                           />
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => setEditingRemarksModuleId(null)}
-                              className="px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold uppercase rounded cursor-pointer"
+                              className="px-4 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs sm:text-sm font-bold uppercase rounded-lg cursor-pointer"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => handleSaveRemarks(selectedModule.id)}
-                              className="px-3 py-1 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-bold uppercase rounded flex items-center gap-1 cursor-pointer"
+                              className="px-4 py-1.5 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs sm:text-sm font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md"
                             >
-                              <Save className="w-3 h-3" />
+                              <Save className="w-4 h-4" />
                               <span>Save Remarks</span>
                             </button>
                           </div>
@@ -736,17 +801,17 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                       ) : (
                         <div>
                           {currentRemarks ? (
-                            <div className="space-y-1.5">
-                              <p className="text-xs text-stone-200 leading-relaxed bg-[#111613] p-2.5 rounded border-l-2 border-[#f2c14e] font-sans">
+                            <div className="space-y-2">
+                              <p className="text-xs sm:text-sm text-stone-100 leading-relaxed bg-[#111613] p-3.5 rounded-xl border-l-4 border-[#f2c14e] font-sans font-medium">
                                 "{currentRemarks}"
                               </p>
-                              <div className="flex items-center justify-between text-[10px] text-stone-500">
-                                <span>Evaluator: <strong className="text-stone-300">{currentCertifier || 'Sa\'ka Command Instructor'}</strong></span>
+                              <div className="flex items-center justify-between text-xs text-stone-400 font-mono">
+                                <span>Evaluator: <strong className="text-stone-200">{currentCertifier || 'Sa\'ka Command Instructor'}</strong></span>
                                 <span>{currentDate || 'Certified Record'}</span>
                               </div>
                             </div>
                           ) : (
-                            <p className="text-[11px] text-stone-500 italic">
+                            <p className="text-xs text-stone-400 italic font-sans">
                               No evaluation remarks recorded yet for this qualification module.
                             </p>
                           )}
@@ -755,11 +820,11 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                     </div>
 
                     {/* CONTAINER 2: DEVELOPMENT NOTES */}
-                    <div className="rounded-xl p-3.5 bg-black/70 border border-stone-800 space-y-2">
+                    <div className="rounded-2xl p-4 sm:p-5 bg-black/70 border border-stone-800 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-cyan-400" />
-                          <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                          <TrendingUp className="w-5 h-5 text-cyan-400" />
+                          <span className="text-xs sm:text-sm font-black text-cyan-400 uppercase tracking-wider font-mono">
                             DEVELOPMENT NOTES · ملاحظات التطوير والتوجيه
                           </span>
                         </div>
@@ -770,35 +835,35 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                               setEditingDevNotesModuleId(selectedModule.id);
                               setDevNotesInput(currentDevNotes);
                             }}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-stone-800 hover:bg-stone-700 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1 cursor-pointer"
+                            className="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-stone-800 hover:bg-stone-700 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                           >
-                            <Edit3 className="w-3 h-3" />
+                            <Edit3 className="w-3.5 h-3.5" />
                             <span>{currentDevNotes ? 'Edit Notes' : '+ Add Notes'}</span>
                           </button>
                         )}
                       </div>
 
                       {editingDevNotesModuleId === selectedModule.id ? (
-                        <div className="space-y-2 pt-1">
+                        <div className="space-y-3 pt-1">
                           <textarea
                             value={devNotesInput}
                             onChange={(e) => setDevNotesInput(e.target.value)}
                             rows={3}
                             placeholder="Enter developmental guidance, drills to improve (e.g. pace count, magazine drills, night re-zero)..."
-                            className="w-full p-2.5 bg-stone-900 border border-cyan-500/40 rounded text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-cyan-400"
+                            className="w-full p-3 bg-stone-900 border border-cyan-500/40 rounded-xl text-xs sm:text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-cyan-400 font-sans"
                           />
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => setEditingDevNotesModuleId(null)}
-                              className="px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold uppercase rounded cursor-pointer"
+                              className="px-4 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs sm:text-sm font-bold uppercase rounded-lg cursor-pointer"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => handleSaveDevNotes(selectedModule.id)}
-                              className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold uppercase rounded flex items-center gap-1 cursor-pointer"
+                              className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md"
                             >
-                              <Save className="w-3 h-3" />
+                              <Save className="w-4 h-4" />
                               <span>Save Notes</span>
                             </button>
                           </div>
@@ -806,16 +871,16 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                       ) : (
                         <div>
                           {currentDevNotes ? (
-                            <div className="space-y-1.5">
-                              <p className="text-xs text-stone-200 leading-relaxed bg-[#0c1417] p-2.5 rounded border-l-2 border-cyan-500 font-sans">
+                            <div className="space-y-2">
+                              <p className="text-xs sm:text-sm text-stone-100 leading-relaxed bg-[#0c1417] p-3.5 rounded-xl border-l-4 border-cyan-500 font-sans font-medium">
                                 "{currentDevNotes}"
                               </p>
-                              <span className="text-[10px] text-stone-500 block">
+                              <span className="text-xs text-stone-400 block font-mono">
                                 Directives for operator skill progression & training lane focus.
                               </span>
                             </div>
                           ) : (
-                            <p className="text-[11px] text-stone-500 italic">
+                            <p className="text-xs text-stone-400 italic font-sans">
                               No developmental notes or guidance logged for this qualification yet.
                             </p>
                           )}
@@ -826,19 +891,19 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                 </div>
 
                 {/* Bottom Action Buttons & Training Booking Integration */}
-                <div className="pt-4 space-y-3">
-                  {/* TRAINING SESSION SCHEDULING CTA (USER REQUIREMENT) */}
-                  <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#1a1608] via-[#0d120e] to-black border-2 border-[#f2c14e]/40 shadow-lg shadow-[#f2c14e]/10 space-y-2.5">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[#f2c14e]/20 border border-[#f2c14e]/50 flex items-center justify-center text-[#f2c14e]">
-                          <CalendarPlus className="w-4 h-4" />
+                <div className="pt-4 space-y-4">
+                  {/* TRAINING SESSION SCHEDULING CTA (Large, Bold & Highly Visible) */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#1e1908] via-[#101411] to-black border-2 border-[#f2c14e]/50 shadow-xl shadow-[#f2c14e]/15 space-y-3.5">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#f2c14e]/20 border border-[#f2c14e]/60 flex items-center justify-center text-[#f2c14e] shadow-md shadow-[#f2c14e]/20 shrink-0">
+                          <CalendarPlus className="w-5 h-5" />
                         </div>
                         <div>
-                          <span className="text-xs font-black text-stone-100 uppercase tracking-wide block">
+                          <span className="text-sm sm:text-base font-black text-stone-100 uppercase tracking-wide block font-sans">
                             TRAINING & ASSESSMENT BOOKING · مواعيد حجز التدريب
                           </span>
-                          <span className="text-[10px] text-stone-400">
+                          <span className="text-xs text-stone-300 font-mono">
                             Book qualification slot with tactical date, companion invite & Google Calendar sync
                           </span>
                         </div>
@@ -849,9 +914,9 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                           tacticalAudio.playRadioClick();
                           setShowBookingModal(true);
                         }}
-                        className="px-3.5 py-2 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-lg shadow-md shadow-[#f2c14e]/30 flex items-center gap-2 cursor-pointer transition active:scale-95"
+                        className="px-4 sm:px-6 py-2.5 sm:py-3 bg-[#f2c14e] hover:bg-amber-400 text-black text-xs sm:text-sm font-black uppercase tracking-wider rounded-xl shadow-lg shadow-[#f2c14e]/30 flex items-center gap-2 cursor-pointer transition active:scale-95"
                       >
-                        <Calendar className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <Calendar className="w-4 h-4 stroke-[2.5]" />
                         <span>Schedule Assessment Session / حجز موعد</span>
                       </button>
                     </div>
@@ -861,18 +926,18 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                       const moduleBookings = trainingBookings.filter(b => b.qualificationId === selectedModule.id);
                       if (moduleBookings.length === 0) {
                         return (
-                          <div className="text-[11px] text-stone-500 italic bg-black/40 px-3 py-2 rounded border border-stone-900 flex items-center justify-between">
+                          <div className="text-xs text-stone-400 italic bg-black/50 px-4 py-2.5 rounded-xl border border-stone-800 flex items-center justify-between font-mono">
                             <span>No upcoming training sessions scheduled for this module yet.</span>
-                            <span className="text-[#f2c14e]/70 font-mono text-[10px]">Ready for appointment</span>
+                            <span className="text-[#f2c14e] font-bold">Ready for appointment</span>
                           </div>
                         );
                       }
                       return (
-                        <div className="space-y-1.5 pt-1">
-                          <span className="text-[10px] font-mono text-[#f2c14e] uppercase tracking-wider block">
+                        <div className="space-y-2 pt-1">
+                          <span className="text-xs font-mono font-bold text-[#f2c14e] uppercase tracking-wider block">
                             Scheduled Sessions for this Module ({moduleBookings.length}):
                           </span>
-                          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                             {moduleBookings.map(booking => {
                               const isConfirmed = booking.status === 'confirmed';
                               const isRejected = booking.status === 'rejected';
@@ -882,17 +947,17 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                               return (
                                 <div
                                   key={booking.id}
-                                  className="p-2.5 rounded-lg bg-black/70 border border-stone-800 flex items-center justify-between flex-wrap gap-2 text-xs"
+                                  className="p-3 sm:p-3.5 rounded-xl bg-black/80 border border-stone-800 flex items-center justify-between flex-wrap gap-2 text-xs sm:text-sm"
                                 >
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-mono text-stone-200 font-bold">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2.5">
+                                      <span className="font-mono text-stone-100 font-bold text-xs sm:text-sm">
                                         📅 {formatBookingDate(booking.year, booking.month, booking.day)}
                                       </span>
-                                      <span className="text-stone-400 text-[11px] font-mono">
+                                      <span className="text-stone-300 text-xs font-mono">
                                         · {booking.slotLabel}
                                       </span>
-                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
                                         isConfirmed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
                                         isRejected ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
                                         'bg-amber-500/20 text-[#f2c14e] border border-amber-500/40 animate-pulse'
@@ -900,26 +965,26 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                                         {booking.status}
                                       </span>
                                     </div>
-                                    <div className="text-[11px] text-stone-400 flex items-center gap-2">
-                                      <span>Candidate: <strong className="text-stone-200">{booking.candidateRank} {booking.candidateName}</strong></span>
+                                    <div className="text-xs text-stone-300 flex items-center gap-3">
+                                      <span>Candidate: <strong className="text-stone-100">{booking.candidateRank} {booking.candidateName}</strong></span>
                                       {booking.companionEmail && (
-                                        <span className="text-amber-400/90 flex items-center gap-1">
-                                          <Mail className="w-3 h-3 inline" />
+                                        <span className="text-amber-300 flex items-center gap-1 font-mono">
+                                          <Mail className="w-3.5 h-3.5 text-red-400 inline" />
                                           Companion: {booking.companionName || booking.companionEmail}
                                         </span>
                                       )}
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-1.5 shrink-0">
+                                  <div className="flex items-center gap-2 shrink-0">
                                     <a
                                       href={googleCalUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="px-2 py-1 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-[10px] font-mono flex items-center gap-1 transition"
+                                      className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-mono flex items-center gap-1.5 transition font-bold"
                                       title="Open in Google Calendar"
                                     >
-                                      <ExternalLink className="w-3 h-3 text-[#f2c14e]" />
+                                      <ExternalLink className="w-3.5 h-3.5 text-[#f2c14e]" />
                                       <span>Google Cal</span>
                                     </a>
                                     {booking.companionEmail && (
@@ -927,10 +992,10 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                                         href={gmailUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="px-2 py-1 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-[10px] font-mono flex items-center gap-1 transition"
+                                        className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-mono flex items-center gap-1.5 transition font-bold"
                                         title="Send Gmail Invite"
                                       >
-                                        <Mail className="w-3 h-3 text-red-400" />
+                                        <Mail className="w-3.5 h-3.5 text-red-400" />
                                         <span>Gmail Invite</span>
                                       </a>
                                     )}
@@ -946,31 +1011,31 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
                   {/* Instructor Certification Control Bar */}
                   {isInstructor && (
-                    <div className="p-3 rounded-lg bg-stone-900 border border-[#f2c14e]/30 flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs font-bold text-[#f2c14e] flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-[#f2c14e]" />
+                    <div className="p-3.5 sm:p-4 rounded-xl bg-stone-900 border border-[#f2c14e]/40 flex items-center justify-between flex-wrap gap-2.5">
+                      <span className="text-xs sm:text-sm font-bold text-[#f2c14e] flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[#f2c14e]" />
                         <span>Instructor Certification Command ({targetName}):</span>
                       </span>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <button
                           onClick={() => handleSetStatus('completed')}
-                          className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase transition flex items-center gap-1 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold uppercase transition flex items-center gap-1.5 cursor-pointer shadow-md"
                         >
-                          <Check className="w-3 h-3 stroke-[3]" />
+                          <Check className="w-4 h-4 stroke-[3]" />
                           <span>Certify (منح التأهيل)</span>
                         </button>
 
                         <button
                           onClick={() => handleSetStatus('available')}
-                          className={`px-3 py-1.5 rounded text-xs font-bold uppercase transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                          className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold uppercase transition flex items-center gap-1.5 cursor-pointer shadow-md ${
                             selectedResolved.isAvailable 
                               ? 'bg-amber-400 text-black ring-2 ring-[#f2c14e]' 
                               : 'bg-amber-600 hover:bg-amber-500 text-black'
                           }`}
                           title="شيل Lock وفك القفل عن هذا المؤهل فوراً"
                         >
-                          <Unlock className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <Unlock className="w-4 h-4 stroke-[2.5]" />
                           <span>شيل Lock / Remove Lock</span>
                         </button>
                       </div>
@@ -978,36 +1043,36 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                   )}
 
                   {/* 4 Training Manual Buttons (Matching Screenshot Grid) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
                       onClick={() => handleOpenManual('trainee_en')}
-                      className="py-2.5 px-3 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 hover:text-white text-xs font-bold uppercase tracking-wider rounded transition flex items-center justify-center gap-2 cursor-pointer"
+                      className="py-3 px-4 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-100 hover:text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <BookOpen className="w-3.5 h-3.5 text-[#f2c14e]" />
+                      <BookOpen className="w-4 h-4 text-[#f2c14e]" />
                       <span>TRAINEE MANUAL — EN</span>
                     </button>
 
                     <button
                       onClick={() => handleOpenManual('trainee_ar')}
-                      className="py-2.5 px-3 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 hover:text-white text-xs font-bold uppercase tracking-wider rounded transition flex items-center justify-center gap-2 cursor-pointer font-arabic"
+                      className="py-3 px-4 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-100 hover:text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer font-arabic shadow-sm"
                     >
-                      <BookOpen className="w-3.5 h-3.5 text-[#f2c14e]" />
+                      <BookOpen className="w-4 h-4 text-[#f2c14e]" />
                       <span>دليل المتدرب — AR</span>
                     </button>
 
                     <button
                       onClick={() => handleOpenManual('instructor_en')}
-                      className="py-2.5 px-3 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 hover:text-white text-xs font-bold uppercase tracking-wider rounded transition flex items-center justify-center gap-2 cursor-pointer"
+                      className="py-3 px-4 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-100 hover:text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <Shield className="w-3.5 h-3.5 text-stone-400" />
+                      <Shield className="w-4 h-4 text-stone-400" />
                       <span>INSTRUCTOR — EN</span>
                     </button>
 
                     <button
                       onClick={() => handleOpenManual('instructor_ar')}
-                      className="py-2.5 px-3 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 hover:text-white text-xs font-bold uppercase tracking-wider rounded transition flex items-center justify-center gap-2 cursor-pointer font-arabic"
+                      className="py-3 px-4 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-100 hover:text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer font-arabic shadow-sm"
                     >
-                      <Shield className="w-3.5 h-3.5 text-stone-400" />
+                      <Shield className="w-4 h-4 text-stone-400" />
                       <span>دليل المدرب — AR</span>
                     </button>
                   </div>
@@ -1019,9 +1084,9 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                       setActionNotice('Passport records synchronised with Thunderbolt HQ.');
                       setTimeout(() => setActionNotice(null), 2500);
                     }}
-                    className="w-full py-2.5 px-3 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 hover:text-[#f2c14e] text-xs font-bold uppercase tracking-wider rounded transition flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3 px-4 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-100 hover:text-[#f2c14e] text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-[#f2c14e]" />
+                    <RefreshCw className="w-4 h-4 text-[#f2c14e]" />
                     <span>REFRESH PASSPORT</span>
                   </button>
                 </div>
@@ -1029,11 +1094,351 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
             </div>
           )}
 
+          {/* PROMOTIONS TAB (نظام الترقيات في أكاديمية الصاعقة) */}
+          {activeTab === 'PROMOTIONS' && (() => {
+            const pfcCount = Math.min(stats.completed, 8);
+            const pfcPercent = Math.round((pfcCount / 8) * 100);
+            const isPfcEligible = stats.completed >= 8;
+
+            const cplCount = Math.min(stats.completed, 12);
+            const cplPercent = Math.round((cplCount / 12) * 100);
+            const hasSfq001 = resolveModuleStatus('01.9', memberQualMap).isCompleted;
+            const isCplEligible = stats.completed >= 12 && hasSfq001;
+
+            return (
+              <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 bg-[#080b09] custom-scrollbar">
+                {/* Header Banner: 🇪🇬 أكاديمية الصاعقة | نظام الترقيات */}
+                <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-[#171e19] via-[#1c221b] to-[#121614] border border-[#f2c14e]/40 shadow-xl space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl sm:text-2xl">🇪🇬</span>
+                      <h2 className="text-base sm:text-xl font-black text-stone-100 tracking-wide font-sans uppercase">
+                        أكاديمية الصاعقة | نظام الترقيات
+                      </h2>
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-[#f2c14e]/15 border border-[#f2c14e]/40 text-[#f2c14e]">
+                      THUNDERBOLT PROMOTION DOCTRINE
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-stone-300 font-arabic leading-relaxed">
+                    نظام الترقيات في أكاديمية الصاعقة معمول علشان يكافئ أفراد الوحدة على التزامهم، وتطوير مهاراتهم، واجتيازهم للتدريبات والتأهيلات المختلفة، وكمان على قدرتهم على تحمل المسؤولية والقيادة داخل وحدة Thunderbolt.
+                  </p>
+                </div>
+
+                {/* Candidate Quick Stats Strip */}
+                <div className="p-3 sm:p-4 rounded-xl bg-black/60 border border-stone-800 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#282518] border border-[#f2c14e]/40 flex items-center justify-center font-display text-lg font-black text-[#f2c14e]">
+                      {targetName ? targetName[0].toUpperCase() : 'O'}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm sm:text-base font-bold text-stone-100">{targetName}</span>
+                        <span className="text-xs text-[#f2c14e] font-mono font-bold">[{targetRank.replace(/^\[|\]$/g, '')}]</span>
+                      </div>
+                      <span className="text-[11px] text-stone-400 font-mono">
+                        Service ID: <strong className="text-stone-200">{targetServiceId}</strong> · Certified: <strong className="text-emerald-400">{stats.completed} Modules</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-400">
+                      {stats.percent}% Operational Readiness
+                    </span>
+                  </div>
+                </div>
+
+                {/* INTERACTIVE MILESTONE ROADMAP */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs sm:text-sm font-black text-[#f2c14e] uppercase tracking-wider font-mono flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-[#f2c14e]" />
+                      <span>MILITARY CAREER MILESTONES · مسار الترقيات العسكري</span>
+                    </h3>
+                    <span className="text-[11px] font-mono text-stone-400">
+                      Live Qualification Tracker
+                    </span>
+                  </div>
+
+                  <div className="relative pl-6 sm:pl-8 border-l-2 border-[#f2c14e]/30 space-y-6">
+                    
+                    {/* MILESTONE 1: PFC (جندي أول) — 8 تأهيلات */}
+                    <div className="relative">
+                      {/* Node circle */}
+                      <div className={`absolute -left-[31px] sm:-left-[39px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                        isPfcEligible 
+                          ? 'bg-emerald-500 border-emerald-300 text-black shadow-md shadow-emerald-500/30' 
+                          : 'bg-[#181e19] border-[#f2c14e] text-[#f2c14e]'
+                      }`}>
+                        {isPfcEligible ? '✓' : '1'}
+                      </div>
+
+                      <div className={`rounded-2xl p-4 sm:p-5 border transition-all ${
+                        isPfcEligible 
+                          ? 'bg-[#0f1712] border-emerald-500/50 shadow-lg shadow-emerald-950/20' 
+                          : 'bg-[#101412] border-stone-800'
+                      } space-y-3`}>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🔰</span>
+                            <h4 className="text-base sm:text-lg font-black text-stone-100 font-sans">
+                              جندي أول (PFC) — 8 تأهيلات
+                            </h4>
+                          </div>
+
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold border ${
+                            isPfcEligible 
+                              ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/50 animate-pulse' 
+                              : 'bg-amber-950/60 text-[#f2c14e] border-amber-500/40'
+                          }`}>
+                            {isPfcEligible ? 'مؤهل للترقية (Eligible) ✓' : `متبقي ${Math.max(8 - stats.completed, 0)} تأهيل`}
+                          </span>
+                        </div>
+
+                        {/* Progress Meter */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-mono text-stone-400">
+                            <span>Requirement: 8 Qualifications</span>
+                            <span className={isPfcEligible ? 'text-emerald-400 font-bold' : 'text-[#f2c14e]'}>
+                              {pfcCount} / 8 Certified ({pfcPercent}%)
+                            </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-black border border-stone-800 overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-500 ${isPfcEligible ? 'bg-emerald-400' : 'bg-gradient-to-r from-amber-500 to-[#f2c14e]'}`}
+                              style={{ width: `${pfcPercent}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-stone-300 font-arabic leading-relaxed">
+                          أي فرد ينجح في إكمال 8 تأهيلات بيكون مؤهل للترقية لرتبة جندي أول.
+                        </p>
+
+                        <div className="p-3 bg-black/40 rounded-xl border border-stone-800/80 space-y-1.5 text-xs text-stone-300 font-arabic">
+                          <span className="font-bold text-[#f2c14e] block">التأهيلات دي ممكن تكون مزيج من:</span>
+                          <ul className="space-y-1 pr-4 list-disc text-stone-200">
+                            <li>التدريبات الأساسية للمقاتل (Core Operator Training)</li>
+                            <li>تأهيلات الأدوار القتالية (Combat Roles)</li>
+                            <li>التأهيلات التخصصية (Specialist Qualifications)</li>
+                          </ul>
+                        </div>
+
+                        {/* Custom Vest with Name Tag Reward Card */}
+                        <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-[#171b14] via-[#1f261c] to-[#171b14] border border-[#f2c14e]/40 space-y-2">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <Shield className="w-4 h-4 text-[#f2c14e]" />
+                              <span className="text-xs sm:text-sm font-black text-[#f2c14e] uppercase font-mono">
+                                SPECIAL GEAR REWARD · فيست العمليات المخصص
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/60 border border-[#f2c14e]/40 text-[#f2c14e] font-bold">
+                              CUSTOM NAME TAG
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-stone-200 font-arabic leading-relaxed">
+                            وبمجرد الترقية، بيتم تصميم فيست مخصوص للفرد، عليه اسمه الشخصي (Name Tag)، تقديرًا للمجهود اللي بذله وتطوره داخل الوحدة.
+                          </p>
+                          {/* Name Tag Preview */}
+                          <div className="pt-1 flex items-center justify-center sm:justify-start">
+                            <div className="px-4 py-1.5 rounded-md bg-[#252a20] border-2 border-[#b09753] shadow-md flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                              <span className="text-xs font-mono font-black text-[#f2c14e] tracking-wider uppercase">
+                                [PFC] {targetName} · {targetServiceId}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* MILESTONE 2: CPL (عريف) — 12 تأهيل + SFQ-001 */}
+                    <div className="relative">
+                      <div className={`absolute -left-[31px] sm:-left-[39px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                        isCplEligible 
+                          ? 'bg-emerald-500 border-emerald-300 text-black shadow-md shadow-emerald-500/30' 
+                          : 'bg-[#181e19] border-[#f2c14e] text-[#f2c14e]'
+                      }`}>
+                        {isCplEligible ? '✓' : '2'}
+                      </div>
+
+                      <div className={`rounded-2xl p-4 sm:p-5 border transition-all ${
+                        isCplEligible 
+                          ? 'bg-[#0f1712] border-emerald-500/50 shadow-lg shadow-emerald-950/20' 
+                          : 'bg-[#101412] border-stone-800'
+                      } space-y-3`}>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🎖️</span>
+                            <h4 className="text-base sm:text-lg font-black text-stone-100 font-sans">
+                              عريف (CPL) — 12 تأهيل (بشرط SFQ-001)
+                            </h4>
+                          </div>
+
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold border ${
+                            isCplEligible 
+                              ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/50' 
+                              : stats.completed >= 12 && !hasSfq001
+                              ? 'bg-amber-950/80 text-amber-300 border-amber-500/50 animate-pulse'
+                              : 'bg-stone-900 text-stone-400 border-stone-700'
+                          }`}>
+                            {isCplEligible 
+                              ? 'مؤهل للترقية لرتبة عريف ✓' 
+                              : stats.completed >= 12 && !hasSfq001 
+                              ? 'يلزم اجتياز SFQ-001 ⚠' 
+                              : `متبقي ${Math.max(12 - stats.completed, 0)} تأهيل + SFQ-001`}
+                          </span>
+                        </div>
+
+                        {/* Progress Meter */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-mono text-stone-400">
+                            <span>Requirement: 12 Modules + SFQ-001</span>
+                            <span className={isCplEligible ? 'text-emerald-400 font-bold' : 'text-[#f2c14e]'}>
+                              {cplCount} / 12 Certified ({cplPercent}%)
+                            </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-black border border-stone-800 overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-500 ${isCplEligible ? 'bg-emerald-400' : 'bg-gradient-to-r from-amber-500 to-[#f2c14e]'}`}
+                              style={{ width: `${cplPercent}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* SFQ-001 Requirement Box */}
+                        <div className={`p-3 rounded-xl border flex items-center justify-between flex-wrap gap-2 text-xs ${
+                          hasSfq001 
+                            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' 
+                            : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {hasSfq001 ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-amber-400" />}
+                            <span className="font-bold">
+                              شرط إلزامي: 01.9 تأهيل القوات الخاصة (SFQ-001 Special Forces Qualification)
+                            </span>
+                          </div>
+                          <span className="font-mono font-bold">
+                            {hasSfq001 ? '✓ محقق ومعتمد' : '⚠ غير معتمد بعد'}
+                          </span>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-stone-300 font-arabic leading-relaxed">
+                          أي فرد يكمل 12 تأهيل، بشرط إن يكون من ضمنهم تأهيل القوات الخاصة (SFQ-001)، بيكون مؤهل للترقية لرتبة عريف.
+                        </p>
+
+                        <p className="text-xs sm:text-sm text-stone-400 font-arabic">
+                          الرتبة دي بتعكس المستوى المتقدم اللي وصل له الفرد من ناحية التدريب والخبرة والقدرة على تنفيذ المهام المختلفة.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* MILESTONE 3: SGT (رقيب) — قائد جماعة نيران */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-6 h-6 rounded-full border-2 bg-[#181e19] border-[#f2c14e] text-[#f2c14e] flex items-center justify-center text-[10px] font-bold">
+                        3
+                      </div>
+
+                      <div className="rounded-2xl p-4 sm:p-5 bg-[#101412] border border-stone-800 space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🎖️</span>
+                            <h4 className="text-base sm:text-lg font-black text-stone-100 font-sans">
+                              رقيب (SGT) — قائد جماعة نيران (Fireteam Leader)
+                            </h4>
+                          </div>
+
+                          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-[#f2c14e]/10 text-[#f2c14e] border border-[#f2c14e]/30">
+                            Command Billet · تعيين قيادي
+                          </span>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-stone-300 font-arabic leading-relaxed">
+                          رتبة رقيب بتكون مخصصة للأفراد اللي بيتم تعيينهم في منصب قائد جماعة نيران.
+                        </p>
+
+                        <div className="p-3 bg-black/40 rounded-xl border border-stone-800/80 space-y-1 text-xs text-stone-300 font-arabic">
+                          <span className="font-bold text-[#f2c14e] block">المسؤوليات القيادية:</span>
+                          <p className="leading-relaxed">
+                            القائد بيكون مسؤول عن قيادة أفراد مجموعته، وتنظيم تحركاتهم، والتنسيق بينهم أثناء العمليات، والتأكد من تنفيذ المهام المطلوبة.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* MILESTONE 4: SSG (رقيب أول) — قائد فصيلة قتالية */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-6 h-6 rounded-full border-2 bg-[#181e19] border-[#f2c14e] text-[#f2c14e] flex items-center justify-center text-[10px] font-bold">
+                        4
+                      </div>
+
+                      <div className="rounded-2xl p-4 sm:p-5 bg-[#101412] border border-stone-800 space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🎖️</span>
+                            <h4 className="text-base sm:text-lg font-black text-stone-100 font-sans">
+                              رقيب أول (SSG) — قائد فصيلة قتالية (Squad Leader)
+                            </h4>
+                          </div>
+
+                          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-amber-500/20 text-[#f2c14e] border border-amber-500/40">
+                            Squad Command · قيادة فصيلة
+                          </span>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-stone-300 font-arabic leading-relaxed">
+                          رتبة رقيب أول بتكون مخصصة للأفراد اللي بيتم تعيينهم في منصب قائد مجموعة قتالية (Squad Leader).
+                        </p>
+
+                        <div className="p-3 bg-black/40 rounded-xl border border-stone-800/80 space-y-1 text-xs text-stone-300 font-arabic">
+                          <span className="font-bold text-[#f2c14e] block">المسؤوليات القيادية المتقدمة:</span>
+                          <p className="leading-relaxed">
+                            وبيكون مسؤول عن قيادة وتنسيق أكتر من جماعة نيران، ومتابعة تنفيذ المهام على مستوى المجموعة بالكامل.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* DOCTRINE PHILOSOPHY CARD: 🇪🇬 فلسفة الترقيات في وحدة الصاعقة */}
+                <div className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-[#1c180e] via-[#151914] to-black border-2 border-[#f2c14e]/40 shadow-xl space-y-3">
+                  <div className="flex items-center gap-2.5 border-b border-stone-800 pb-2.5">
+                    <span className="text-xl">🇪🇬</span>
+                    <h3 className="text-sm sm:text-base font-black text-[#f2c14e] uppercase font-sans tracking-wide">
+                      فلسفة الترقيات في وحدة الصاعقة (Thunderbolt Unit Promotion Philosophy)
+                    </h3>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-stone-200 font-arabic leading-relaxed">
+                    في Thunderbolt، الترقيات مش بتعتمد على الأقدمية أو عدد الساعات اللي قضيتها في الوحدة وبس، لكن بتعتمد على مجهودك، والتأهيلات اللي حصلت عليها، والتزامك، وقدرتك على تحمل المسؤولية.
+                  </p>
+
+                  <p className="text-xs sm:text-sm text-stone-300 font-arabic leading-relaxed">
+                    هدفنا إن كل فرد يكون عنده فرصة يطور نفسه، ويتخصص في المجال اللي بيحبه، ويوصل لرتب أعلى من خلال مجهوده وكفاءته.
+                  </p>
+
+                  <div className="p-3 bg-black/60 rounded-xl border border-[#f2c14e]/30 text-xs sm:text-sm text-[#f2c14e] font-arabic font-bold text-center">
+                    "الرتبة مش مجرد شارة بتتحط على الكتف، دي مسؤولية بتكتسبها وتثبت إنك تستحقها."
+                  </div>
+
+                  <div className="pt-1 text-right text-xs font-mono text-stone-400">
+                    <span>Thunderbolt Unit | أكاديمية الصاعقة 🇪🇬</span>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
+
           {/* DASHBOARD TAB */}
           {activeTab === 'DASHBOARD' && (
-            <div className="flex-1 p-6 overflow-y-auto space-y-6 bg-[#080b09]">
+            <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 bg-[#080b09]">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold text-stone-100 uppercase">
+                <h2 className="text-lg sm:text-xl font-bold text-stone-100 uppercase">
                   Sa'ka Academy Training Command Dashboard
                 </h2>
                 <p className="text-xs text-stone-400">
@@ -1041,38 +1446,38 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div className="p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                <div className="p-3 sm:p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
                   <span className="text-stone-500 text-[10px] uppercase font-bold">Total Qualifications</span>
-                  <div className="text-2xl font-black text-[#f2c14e]">{QUALIFICATION_MODULES.length}</div>
-                  <span className="text-[10px] text-stone-400">Across 7 Core Disciplines</span>
+                  <div className="text-xl sm:text-2xl font-black text-[#f2c14e]">{QUALIFICATION_MODULES.length}</div>
+                  <span className="text-[10px] text-stone-400">Across 7 Tracks</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
-                  <span className="text-stone-500 text-[10px] uppercase font-bold">Selected Operator ({targetName})</span>
-                  <div className="text-2xl font-black text-emerald-400">{stats.completed} Certified</div>
-                  <span className="text-[10px] text-stone-400">{stats.percent}% Completion Rate</span>
+                <div className="p-3 sm:p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
+                  <span className="text-stone-500 text-[10px] uppercase font-bold">Operator ({targetName})</span>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-400">{stats.completed} Certified</div>
+                  <span className="text-[10px] text-stone-400">{stats.percent}% Rate</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
-                  <span className="text-stone-500 text-[10px] uppercase font-bold">Available for Training</span>
-                  <div className="text-2xl font-black text-amber-400">{stats.available}</div>
-                  <span className="text-[10px] text-stone-400">Ready for Assessment</span>
+                <div className="p-3 sm:p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
+                  <span className="text-stone-500 text-[10px] uppercase font-bold">Available Training</span>
+                  <div className="text-xl sm:text-2xl font-black text-amber-400">{stats.available}</div>
+                  <span className="text-[10px] text-stone-400">Ready</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
-                  <span className="text-stone-500 text-[10px] uppercase font-bold">Unit Service ID</span>
-                  <div className="text-2xl font-black text-stone-200">{targetServiceId}</div>
-                  <span className="text-[10px] text-stone-400">Permanent Sa'ka Passport</span>
+                <div className="p-3 sm:p-4 rounded-xl bg-black/60 border border-stone-800 space-y-1">
+                  <span className="text-stone-500 text-[10px] uppercase font-bold">Service ID</span>
+                  <div className="text-xl sm:text-2xl font-black text-stone-200 truncate">{targetServiceId}</div>
+                  <span className="text-[10px] text-stone-400">Passport</span>
                 </div>
               </div>
 
               {/* Training Disciplines Overview */}
-              <div className="rounded-xl p-4 bg-stone-900/60 border border-stone-800 space-y-3">
+              <div className="rounded-xl p-3.5 sm:p-4 bg-stone-900/60 border border-stone-800 space-y-3">
                 <h3 className="text-xs font-bold text-[#f2c14e] uppercase tracking-wider">
                   Core Combat Qualification Tracks:
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs">
                   <div className="p-3 bg-black/40 rounded-lg border border-stone-800 space-y-1">
                     <span className="font-bold text-stone-200 block">01. Foundation & Infantry Operator (01.1 - 01.9)</span>
                     <p className="text-[11px] text-stone-400">Basic Combat, Land Navigation, Patrols, CQB, Night Ops, SERE, and Special Forces Tier 1.</p>
@@ -1096,10 +1501,10 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
           {/* ASSESSMENT TAB */}
           {activeTab === 'ASSESSMENT' && (
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#080b09]">
+            <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4 bg-[#080b09]">
               <div className="flex items-center justify-between pb-3 border-b border-stone-800 flex-wrap gap-2">
                 <div>
-                  <h2 className="text-lg font-bold text-stone-100 uppercase">
+                  <h2 className="text-base sm:text-lg font-bold text-stone-100 uppercase">
                     Operator Assessment & Certification Matrix
                   </h2>
                   <p className="text-xs text-stone-400">
@@ -1256,9 +1661,9 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
           {/* PERSONNEL RECORDS TAB */}
           {activeTab === 'PERSONNEL RECORDS' && (
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#080b09]">
+            <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4 bg-[#080b09]">
               <div className="pb-3 border-b border-stone-800">
-                <h2 className="text-lg font-bold text-stone-100 uppercase">
+                <h2 className="text-base sm:text-lg font-bold text-stone-100 uppercase">
                   Unit Personnel Training Records & Passports
                 </h2>
                 <p className="text-xs text-stone-400">
@@ -1280,36 +1685,37 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
                         tacticalAudio.playRadioClick();
                         setSelectedMemberId(acc.id);
                         setActiveTab('QUALIFICATIONS');
+                        setMobileQualView('detail');
                       }}
-                      className="p-3.5 rounded-xl bg-black/60 border border-stone-800 hover:border-[#f2c14e]/40 transition flex items-center justify-between cursor-pointer group"
+                      className="p-3 sm:p-3.5 rounded-xl bg-black/60 border border-stone-800 hover:border-[#f2c14e]/40 transition flex items-center justify-between cursor-pointer group"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#141a16] border border-[#f2c14e]/30 flex items-center justify-center font-bold text-sm text-[#f2c14e]">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#141a16] border border-[#f2c14e]/30 flex items-center justify-center font-bold text-xs sm:text-sm text-[#f2c14e]">
                           {acc.username[0].toUpperCase()}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-stone-100 group-hover:text-[#f2c14e] transition-colors">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-stone-100 group-hover:text-[#f2c14e] transition-colors">
                               {acc.username}
                             </span>
-                            <span className="text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/30 px-1.5 py-0.2 rounded">
+                            <span className="text-[9px] sm:text-[10px] font-bold text-[#f2c14e] bg-[#f2c14e]/10 border border-[#f2c14e]/30 px-1.5 py-0.2 rounded">
                               {acc.rank}
                             </span>
                           </div>
-                          <div className="text-[10px] text-stone-500 font-mono mt-0.5 flex items-center gap-2">
+                          <div className="text-[10px] text-stone-500 font-mono mt-0.5 flex items-center gap-1.5 sm:gap-2 flex-wrap">
                             <span>Service ID: {acc.unitServiceId || 'TU-9198'}</span>
                             <span>•</span>
-                            <span>Steam: {acc.steamUid || '76561198...'}</span>
+                            <span className="truncate max-w-[100px] sm:max-w-none">UID: {acc.steamUid || '76561198...'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <div className="text-right">
-                          <span className="text-xs font-bold text-emerald-400 block">
+                          <span className="text-[11px] sm:text-xs font-bold text-emerald-400 block">
                             {accStats.completed} / {accStats.total} Certified
                           </span>
-                          <span className="text-[10px] text-stone-500">
+                          <span className="text-[9px] sm:text-[10px] text-stone-500">
                             {accStats.percent}% Readiness
                           </span>
                         </div>
@@ -1324,9 +1730,9 @@ export const SakaAcademyModal: React.FC<SakaAcademyModalProps> = ({
 
           {/* EXPORT TAB - NOW INCLUDES REMARKS AND DEVELOPMENT NOTES */}
           {activeTab === 'EXPORT' && (
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#080b09]">
+            <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4 bg-[#080b09]">
               <div className="pb-3 border-b border-stone-800">
-                <h2 className="text-lg font-bold text-stone-100 uppercase">
+                <h2 className="text-base sm:text-lg font-bold text-stone-100 uppercase">
                   Export Sa'ka Military Passport Dossier
                 </h2>
                 <p className="text-xs text-stone-400">

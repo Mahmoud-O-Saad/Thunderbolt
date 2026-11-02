@@ -65,11 +65,14 @@ export const PendingClearanceScreen: React.FC<PendingClearanceScreenProps> = ({
       {/* Top Bar Header */}
       <header className="border-b border-stone-800/80 bg-black/60 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-3">
-          <img
-            src="/assets/OP/photo_5836838891465246777_x.jpg"
-            alt="Thunderbolt Emblem"
-            className="w-8 h-8 rounded-lg object-cover border border-[#f2c14e]/40 shadow-sm"
-          />
+          <div className="relative w-9 h-9 rounded-full p-0.5 bg-gradient-to-b from-[#f2c14e] via-[#352b13] to-black border border-[#f2c14e] shadow-md shadow-[#f2c14e]/30 flex items-center justify-center shrink-0">
+            <img
+              src="/assets/OP/thunderbolt_logo_ultra.png"
+              alt="Thunderbolt Emblem"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-contain filter drop-shadow-[0_0_4px_rgba(242,193,78,0.7)]"
+            />
+          </div>
           <div>
             <h1 className="font-display text-sm font-bold tracking-wider text-stone-100 uppercase">
               Thunderbolt Unit · Special Operations

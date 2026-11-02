@@ -282,7 +282,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       <div className="fixed inset-0 bg-black/60 pointer-events-none" />
 
       {/* Phone-width container matching Thunderbolt App Layout */}
-      <div className="w-full max-w-[420px] min-h-screen border-x border-[#1a221d] flex flex-col justify-between p-5 relative overflow-hidden z-10 shadow-2xl bg-[#090d0b]">
+      <div className="w-full max-w-[420px] min-h-screen border-x border-[#1a221d] flex flex-col justify-between p-4 sm:p-5 relative overflow-y-auto z-10 shadow-2xl bg-[#090d0b]">
         {/* Cover image subtle background inside card */}
         <div
           className="absolute inset-0 bg-cover bg-top opacity-20 pointer-events-none"
@@ -291,19 +291,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-[#090d0b]/90 via-[#0a0f0c]/85 to-[#060807]/98 pointer-events-none" />
         <div className="absolute inset-0 tb-grid opacity-20 pointer-events-none" />
 
-        {/* Top Bar: Language & Audio Toggles */}
-        <div className="relative z-10 flex items-center justify-between pb-3 border-b border-stone-800/80">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-mono tracking-widest text-[#f2c14e] font-bold uppercase">
-              GATEWAY // PORTAL 01
-            </span>
+        {/* Top Bar: Unit Emblem, Gate Identification & Controls */}
+        <div className="relative z-10 flex items-center justify-between pb-3 border-b border-[#f2c14e]/25 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-9 h-9 rounded-full p-0.5 bg-gradient-to-b from-[#f2c14e] via-[#352b13] to-black border border-[#f2c14e] shadow-md shadow-[#f2c14e]/30 flex items-center justify-center shrink-0">
+              <img
+                src="/assets/OP/thunderbolt_logo_ultra.png"
+                alt="Thunderbolt Emblem"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_4px_rgba(242,193,78,0.7)]"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display text-xs font-black tracking-wider text-stone-100 uppercase leading-none">
+                THUNDERBOLT UNIT
+              </span>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[9px] font-mono tracking-widest text-[#f2c14e] font-bold uppercase leading-none">
+                  GATEWAY // 01 · 🇪🇬
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={onToggleLang}
-              className="px-2.5 py-1 rounded-lg bg-stone-900/80 border border-stone-700/80 text-[10px] font-mono font-bold text-stone-300 hover:text-[#f2c14e] transition flex items-center gap-1 cursor-pointer"
+              className="px-2 py-1 rounded-lg bg-stone-900/80 border border-stone-700/80 text-[10px] font-mono font-bold text-stone-300 hover:text-[#f2c14e] transition flex items-center gap-1 cursor-pointer"
             >
               <Globe className="w-3 h-3 text-[#f2c14e]" />
               <span>{lang === 'ar' ? 'English' : 'عربي'}</span>
@@ -321,34 +336,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
         {/* Central Content */}
         <div className="relative z-10 py-4 my-auto space-y-5">
-          {/* Logo & Header Lockup */}
-          <div className="flex flex-col items-center text-center space-y-2.5">
+          {/* Logo & Header Lockup with Radiant Gold Illumination */}
+          <div className="flex flex-col items-center text-center space-y-3 shrink-0">
             <div className="relative flex items-center justify-center">
-              <div className="absolute -inset-4 rounded-full border border-[#f2c14e]/20 animate-pulse pointer-events-none" />
-              <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-b from-[#f2c14e]/70 via-[#121915] to-black border-2 border-[#f2c14e]/80 shadow-xl shadow-[#f2c14e]/20 flex items-center justify-center overflow-hidden">
+              {/* Golden Ambient Backlight Spotlight */}
+              <div className="absolute -inset-8 rounded-full bg-[radial-gradient(circle,rgba(242,193,78,0.3)_0%,rgba(242,193,78,0.08)_50%,transparent_75%)] blur-lg pointer-events-none" />
+              <div className="absolute -inset-6 rounded-full border border-[#f2c14e]/30 animate-pulse pointer-events-none" />
+              <div className="absolute -inset-3 rounded-full border border-dashed border-[#f2c14e]/40 pointer-events-none animate-spin" style={{ animationDuration: '20s' }} />
+
+              {/* Glowing High-Visibility Golden Emblem */}
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-2 bg-gradient-to-b from-[#f2c14e] via-[#352b13] to-black border-3 border-[#f2c14e] shadow-[0_0_25px_rgba(242,193,78,0.45)] ring-2 ring-[#f2c14e]/40 flex items-center justify-center overflow-hidden">
                 <img
-                  src="/assets/OP/3.Logo_9d28ba9d.png"
+                  src="/assets/OP/thunderbolt_logo_ultra.png"
                   alt="Thunderbolt Unit Logo"
-                  className="w-full h-full object-cover rounded-full"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(242,193,78,0.95)]"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-2">
-                <h1 className="font-display text-2xl font-black tracking-widest text-stone-100 uppercase">
+                <h1 className="font-display text-2xl sm:text-3xl font-black tracking-widest text-stone-100 uppercase drop-shadow">
                   THUNDERBOLT
                 </h1>
-                <span className="font-display text-xs px-2 py-0.5 rounded bg-[#f2c14e] text-black font-black tracking-widest">
+                <span className="font-display text-xs px-2 py-0.5 rounded bg-[#f2c14e] text-black font-black tracking-widest shadow-sm shadow-[#f2c14e]/30">
                   UNIT
                 </span>
               </div>
-              <p className="font-arabic text-xs font-bold text-[#f2c14e] tracking-wide">
-                وحدة الصاعقة المصرية · مركز القيادة والعمليات
+              <p className="font-arabic text-xs sm:text-sm font-bold text-[#f2c14e] tracking-wide">
+                وحدة الصاعقة المصرية 🇪🇬 مركز القيادة والعمليات التكتيكية
               </p>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/60 border border-[#f2c14e]/30 text-[10px] font-mono text-[#f2c14e]">
-                <Zap className="w-3 h-3 fill-[#f2c14e]" />
-                <span>Cmd: [MG | لواء أ.ح] Dragon</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/70 border border-[#f2c14e]/40 text-[11px] font-mono text-[#f2c14e] shadow-sm">
+                <Zap className="w-3.5 h-3.5 fill-[#f2c14e]" />
+                <span>Cmd: [MG | لواء أ.ح] Dragon · TU-9198</span>
               </div>
             </div>
           </div>
@@ -654,6 +675,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 Authorize Discord
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tactical Authorization Progress Overlay during login */}
+      {isAuthorizing && (
+        <div className="fixed inset-0 z-70 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+          <div className="relative flex items-center justify-center mb-5">
+            <div className="absolute -inset-10 rounded-full border-2 border-[#f2c14e]/30 animate-ping" />
+            <div className="absolute -inset-5 rounded-full border border-dashed border-[#f2c14e]/40 animate-spin" style={{ animationDuration: '6s' }} />
+            <div className="relative w-32 h-32 rounded-full p-2 bg-gradient-to-b from-[#f2c14e] via-[#352b13] to-black border-3 border-[#f2c14e] shadow-2xl shadow-[#f2c14e]/60 flex items-center justify-center">
+              <img
+                src="/assets/OP/thunderbolt_logo_ultra.png"
+                alt="Thunderbolt Emblem"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_15px_rgba(242,193,78,0.95)]"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5 max-w-xs">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#f2c14e] font-bold px-3 py-0.5 rounded-full bg-[#f2c14e]/10 border border-[#f2c14e]/30 inline-block">
+              TACTICAL AUTHORIZATION // تصريح العمليات
+            </span>
+            <h3 className="text-lg font-bold text-stone-100 font-display uppercase tracking-wider">
+              {lang === 'ar' ? 'جاري التحقق من الهوية العسكرية...' : 'VERIFYING OPERATOR CLEARANCE...'}
+            </h3>
+            <p className="text-xs text-stone-400 font-mono">
+              Connecting to Thunderbolt Special Operations Command
+            </p>
           </div>
         </div>
       )}

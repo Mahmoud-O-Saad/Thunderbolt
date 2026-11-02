@@ -23,6 +23,7 @@ import { SignUpModal } from './components/SignUpModal';
 import { IncomingAlertBanner } from './components/IncomingAlertBanner';
 import { PendingClearanceScreen } from './components/PendingClearanceScreen';
 import { AccountSwitcherModal } from './components/AccountSwitcherModal';
+import { TacticalBootLoader } from './components/TacticalBootLoader';
 import { tacticalAudio, sendBrowserNotification } from './utils/audio';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { 
@@ -102,6 +103,7 @@ const INITIAL_TRAINING_BOOKINGS: TrainingBooking[] = [
 
 export default function App() {
   // Navigation & View States (English default)
+  const [isBootLoading, setIsBootLoading] = useState<boolean>(true);
   const [showSplash, setShowSplash] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem('thunderbolt_is_logged_in') === 'true';
@@ -816,6 +818,16 @@ export default function App() {
     }
   };
 
+  // Initial Tactical Boot Sequence / Loading Screen
+  if (isBootLoading) {
+    return (
+      <TacticalBootLoader
+        onComplete={() => setIsBootLoading(false)}
+        lang={lang}
+      />
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <>
@@ -923,6 +935,7 @@ export default function App() {
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         onShowSplash={() => setShowSplash(true)}
+        onTriggerBootLoading={() => setIsBootLoading(true)}
         userRole={userRole}
         onSetUserRole={handleSetUserRole}
         currentUser={currentUser}
